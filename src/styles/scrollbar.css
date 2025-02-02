@@ -1,0 +1,16 @@
+/* Custom scrollbar styles */
+:root {
+    --scrollbar-size: 4px;
+    --scrollbar-thumb-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .scrollarea-thumb-y {
+    background: var(--scrollbar-thumb-color) !important;
+    width: var(--scrollbar-size) !important;
+  }
+  
+  .scrollarea-track-y {
+    width: var(--scrollbar-size) !important;
+  }
+  
+  
