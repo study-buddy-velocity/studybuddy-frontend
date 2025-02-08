@@ -8,9 +8,9 @@ import { useAuth } from "@/hooks/useAuthenticationHook";
 import {
   APIResponse,
   HistoryDataItem,
-  Query,
-  subjectOptions,
-} from "@/lib/utils";
+  Query
+} from "@/lib/types/types";
+import {subjectOptions} from '@/lib/utils'
 import SubjectDialog from "@/components/ui/subjectSectionDialog";
 import AutoScrollChatArea from "@/components/ui/autoScrollChatArea";
 import { Toaster } from "@/components/ui/toaster";

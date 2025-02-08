@@ -105,7 +105,7 @@ export function SidebarContent({
 
   useEffect(() => {
     fetchStreakData();
-  }, []);
+  });
 
   const SidebarItems = () => (
     <div className="space-y-4 w-full">

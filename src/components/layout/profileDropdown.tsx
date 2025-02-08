@@ -47,11 +47,10 @@ const ProfileDropdown = ({ userName }: ProfileDropdownProps) => {
       // Redirect to login page
       router.push('/info/start');
     } catch (error) {
-      // Show error toast if something goes wrong
+      console.error("Logout error:", error);
       toast({
         title: "Error",
         description: "Failed to log out. Please try again.",
-        variant: "destructive",
       });
     }
     setIsDropdownOpen(false);

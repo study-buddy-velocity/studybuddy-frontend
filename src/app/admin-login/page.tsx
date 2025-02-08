@@ -51,7 +51,6 @@ export default function LoginPage() {
         title: "Error",
         description:
           error instanceof Error ? error.message : "Invalid credentials",
-        variant: "destructive",
       });
     }
   };

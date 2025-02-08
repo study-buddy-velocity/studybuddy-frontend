@@ -135,7 +135,6 @@ export default function AdminPage() {
       toast({
         title: "Error",
         description: "Failed to delete user",
-        variant: "destructive",
       });
     }
   };
@@ -182,7 +181,6 @@ export default function AdminPage() {
       toast({
         title: "Error",
         description: "Failed to register user",
-        variant: "destructive",
       });
     }
   };

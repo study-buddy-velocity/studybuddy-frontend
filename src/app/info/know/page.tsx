@@ -16,15 +16,8 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuthenticationHook";
 import { subjectOptions } from "@/lib/utils";
+import {FormData} from "@/lib/types/types"
 
-type FormData = {
-  dob: Date | null;
-  name: string;
-  phoneno: string;
-  schoolName: string;
-  class: string;
-  subjects: string[];
-};
 
 export default function GetToKnow() {
   const router = useRouter();

@@ -12,61 +12,49 @@ interface MessageBubbleProps {
   isTyping?: boolean;
 }
 
-type CustomComponentProps = {
-  node?: any;
-  className?: string;
+type CustomComponentProps<T extends HTMLElement> = React.HTMLAttributes<T> & {
   children?: React.ReactNode;
-}
+};
 
-type CodeProps = CustomComponentProps & {
+type CodeProps = CustomComponentProps<HTMLElement> & {
   inline?: boolean;
-}
+};
 
 export function MessageBubble({ content, isUser, avatarSrc, isTyping }: MessageBubbleProps) {
-  // Process the content to properly handle LaTeX
   const processContent = (text: string) => {
     return text.replace(/\\\((.*?)\\\)/g, '$$$1$$')
-           .replace(/\\\[(.*?)\\\]/g, '$$$$1$$');
+               .replace(/\\\[(.*?)\\\]/g, '$$$$1$$');
   };
 
   const formattedContent = content ? processContent(content) : "Please ask relevant questions.";
 
   const customComponents = {
-    h1: ({children, ...props}: CustomComponentProps) => (
+    h1: ({ children, ...props }: CustomComponentProps<HTMLHeadingElement>) => (
       <h1 className="text-xl font-bold my-4" {...props}>{children}</h1>
     ),
-    h2: ({children, ...props}: CustomComponentProps) => (
+    h2: ({ children, ...props }: CustomComponentProps<HTMLHeadingElement>) => (
       <h2 className="text-lg font-bold my-3" {...props}>{children}</h2>
     ),
-    h3: ({children, ...props}: CustomComponentProps) => (
+    h3: ({ children, ...props }: CustomComponentProps<HTMLHeadingElement>) => (
       <h3 className="text-md font-bold my-2" {...props}>{children}</h3>
     ),
-    p: ({children, ...props}: CustomComponentProps) => (
+    p: ({ children, ...props }: CustomComponentProps<HTMLParagraphElement>) => (
       <p className="my-2 whitespace-pre-wrap" {...props}>{children}</p>
     ),
-    ul: ({children, ...props}: CustomComponentProps) => (
+    ul: ({ children, ...props }: CustomComponentProps<HTMLUListElement>) => (
       <ul className="list-disc pl-6 my-2" {...props}>{children}</ul>
     ),
-    ol: ({children, ...props}: CustomComponentProps) => (
+    ol: ({ children, ...props }: CustomComponentProps<HTMLOListElement>) => (
       <ol className="list-decimal pl-6 my-2" {...props}>{children}</ol>
     ),
-    li: ({children, ...props}: CustomComponentProps) => (
+    li: ({ children, ...props }: CustomComponentProps<HTMLLIElement>) => (
       <li className="my-1" {...props}>{children}</li>
     ),
-    code: ({inline, children, ...props}: CodeProps) => {
-      if (inline) {
-        return (
-          <code className="bg-gray-800 px-1 rounded" {...props}>
-            {children}
-          </code>
-        );
-      }
-      return (
-        <code className="block bg-gray-800 p-2 rounded my-2 overflow-x-auto" {...props}>
-          {children}
-        </code>
-      );
-    }
+    code: ({ inline, children, ...props }: CodeProps) => (
+      <code className={`${inline ? "bg-gray-800 px-1" : "block bg-gray-800 p-2 overflow-x-auto"} rounded`} {...props}>
+        {children}
+      </code>
+    ),
   };
 
   return (

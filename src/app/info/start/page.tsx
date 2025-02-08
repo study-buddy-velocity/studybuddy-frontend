@@ -52,7 +52,6 @@ export default function LoginForm() {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Invalid credentials", // Use the error message
-        variant: "destructive"
       })
     } finally {
       setIsLoading(false) // Set loading state to false

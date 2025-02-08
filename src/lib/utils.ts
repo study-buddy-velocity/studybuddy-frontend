@@ -67,33 +67,3 @@ export function getNonRepeatingValues(array1: string[], array2: string[]): strin
   return Array.from(uniqueValues);
 }
 
-export type Query = {
-  query: string;
-  response: string;
-  tokensUsed: number;
-  _id: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type SubjectData = {
-  subject: string;
-  queries: Query[];
-  _id: string;
-};
-
-export type HistoryDataItem = {
-  _id: string;
-  date: string;
-  subjectWise: SubjectData[];
-  totalTokensSpent: number;
-  subjects: string[];
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
-  __v: number;
-};
-
-export type APIResponse = {
-  data: HistoryDataItem[];
-};
