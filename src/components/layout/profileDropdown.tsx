@@ -4,11 +4,13 @@ import {
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { capitalizeFirstLetter } from '@/lib/utils';
+import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 
 interface ProfileDropdownProps {
@@ -19,6 +21,7 @@ const ProfileDropdown = ({ userName }: ProfileDropdownProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isComingSoonOpen, setIsComingSoonOpen] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleViewProfile = () => {
     router.push('/profile');
@@ -28,6 +31,30 @@ const ProfileDropdown = ({ userName }: ProfileDropdownProps) => {
   const handleOpenCommunity = () => {
     setIsDropdownOpen(false);
     setIsComingSoonOpen(true);
+  };
+
+  const handleLogout = () => {
+    try {
+      // Clear all items from localStorage
+      localStorage.clear();
+      
+      // Show success toast
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account",
+      });
+
+      // Redirect to login page
+      router.push('/info/start');
+    } catch (error) {
+      // Show error toast if something goes wrong
+      toast({
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive",
+      });
+    }
+    setIsDropdownOpen(false);
   };
 
   return (
@@ -60,27 +87,37 @@ const ProfileDropdown = ({ userName }: ProfileDropdownProps) => {
           >
             View Profile
           </DropdownMenuItem>
+          <DropdownMenuSeparator className="bg-gray-200" />
+          <DropdownMenuItem 
+            onSelect={(e) => {
+              e.preventDefault();
+              handleLogout();
+            }}
+            className="hover:bg-red-50 text-red-600 cursor-pointer"
+          >
+            Log Out
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
       <Dialog open={isComingSoonOpen} onOpenChange={setIsComingSoonOpen}>
-      <DialogContent >
-        <DialogHeader>
-          <DialogTitle>Coming Soon</DialogTitle>
-          <DialogDescription>
-            Community feature will be available soon!
-          </DialogDescription>
-        </DialogHeader>
-        <div className="relative w-[100%] h-[300px] mx-auto">
-          <Image
-            src="/assets/backgrounds/Open-Community.png"
-            alt="Profile avatar"
-            layout="fill" 
-            className="rounded-lg object-cover"
-          />
-        </div>
-      </DialogContent>
-    </Dialog>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Coming Soon</DialogTitle>
+            <DialogDescription>
+              Community feature will be available soon!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative w-[100%] h-[300px] mx-auto">
+            <Image
+              src="/assets/backgrounds/Open-Community.png"
+              alt="Profile avatar"
+              layout="fill" 
+              className="rounded-lg object-cover"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

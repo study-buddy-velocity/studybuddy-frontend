@@ -28,6 +28,7 @@ export default function ChatInterface() {
     [key: string]: Query[];
   }>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isTyping, setIsTyping] = useState(false);
 
   const fetchChatHistory = async () => {
     try {
@@ -96,7 +97,7 @@ export default function ChatInterface() {
     if (!selectedSubject || !message.trim()) return;
 
     setMessages((prev) => [...prev, { content: message, isUser: true }]);
-
+    setIsTyping(true);
     try {
       const response = await fetch(
         `${
@@ -112,6 +113,7 @@ export default function ChatInterface() {
         ...prev,
         { content: data.response, isUser: false },
       ]);
+      setIsTyping(false);
 
       // Update current session with new message
       setCurrentSession((prev) => ({
@@ -191,7 +193,7 @@ export default function ChatInterface() {
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col bg-[#232323] rounded-[14px] border border-[#C6C6C682]">
           <ChatHeader />
-          <AutoScrollChatArea messages={messages} />
+          <AutoScrollChatArea messages={messages} isTyping ={isTyping }/>
           <ChatInput onSendMessage={handleSendMessage} />
         </div>
       </div>
