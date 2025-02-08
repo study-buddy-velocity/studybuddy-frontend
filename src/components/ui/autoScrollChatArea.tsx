@@ -5,11 +5,13 @@ import { MessageBubble } from "@/components/layout/MessageBubble";
 interface Message {
   content: string;
   isUser: boolean;
+  lastMessage : boolean;
 }
 
 interface AutoScrollChatAreaProps {
   messages: Message[];
   isTyping : boolean;
+
 }
 
 const AutoScrollChatArea: React.FC<AutoScrollChatAreaProps> = ({ messages, isTyping  }) => {
@@ -53,9 +55,10 @@ const AutoScrollChatArea: React.FC<AutoScrollChatAreaProps> = ({ messages, isTyp
       {messages.map((message, index) => (
         <MessageBubble
           key={index}
-          content={message.content}
+          content={message?.content || "Please ask relevent questions."}
           isUser={message.isUser}
-          avatarSrc={message.isUser ? "/placeholder.svg" : "/assets/buddy/Joy-profile-icon.svg"}
+          avatarSrc={message.isUser ? "/assets/buddy/default_profile_pic.png" : "/assets/buddy/Joy-profile-icon.svg"}
+          lastMessage={message.lastMessage && index === messages.length - 1}
         />
       ))}
       {isTyping && (
@@ -69,23 +72,6 @@ const AutoScrollChatArea: React.FC<AutoScrollChatAreaProps> = ({ messages, isTyp
       <div className="h-4" />
     </div>
   </ScrollArea>
-    // <ScrollArea 
-    //   className="flex-1 p-4" 
-    //   ref={scrollRef}
-    // >
-    //   <div className="space-y-4 max-w-4xl mx-auto">
-    //     {messages.map((message, index) => (
-    //       <MessageBubble
-    //         key={index}
-    //         content={message.content}
-    //         isUser={message.isUser}
-    //         avatarSrc={message.isUser ? "/placeholder.svg" : "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-yIzYHQqhgUwtCjc2YWKjb57l0xGxV8.png"}
-    //         isTyping={index === messages.length - 1 && isTyping && !message.isUser} // Pass isLastMessage prop
-    //       />
-    //     ))}
-    //     <div className="h-4" />
-    //   </div>
-    // </ScrollArea>
   );
 };
 

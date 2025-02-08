@@ -19,7 +19,7 @@ import Image from "next/image";
 export default function ChatInterface() {
   const { getAuthHeaders } = useAuth();
   const [messages, setMessages] = useState<
-    Array<{ content: string; isUser: boolean }>
+    Array<{ content: string; isUser: boolean; lastMessage:boolean }>
   >([]);
   const [selectedSubject, setSelectedSubject] = useState("");
   const [showSubjectDialog, setShowSubjectDialog] = useState(true);
@@ -79,8 +79,8 @@ export default function ChatInterface() {
 
     if (currentSession[subject]) {
       const subjectMessages = currentSession[subject].flatMap((query) => [
-        { content: query.query, isUser: true },
-        { content: query.response, isUser: false },
+        { content: query.query, isUser: true, lastMessage: false },
+        { content: query.response, isUser: false, lastMessage: false },
       ]);
       setMessages(subjectMessages);
     } else {
@@ -95,41 +95,42 @@ export default function ChatInterface() {
 
   const handleSendMessage = async (message: string) => {
     if (!selectedSubject || !message.trim()) return;
-
-    setMessages((prev) => [...prev, { content: message, isUser: true }]);
+  
+    setMessages((prev) => [...prev, { content: message, isUser: true, lastMessage:false }]);
     setIsTyping(true);
+  
     try {
       const response = await fetch(
-        `${
-          process.env.NEXT_PUBLIC_API_URL
-        }/chat?subject=${selectedSubject}&query=${encodeURIComponent(message)}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/chat?subject=${selectedSubject}&query=${encodeURIComponent(message)}`,
         {
           headers: getAuthHeaders(),
         }
       );
       const data = await response.json();
-
+      const newQuery: Query = {
+        query: message,
+        response: data.response,
+        tokensUsed: data.tokensUsed || 0,
+        // lastMessage: true,
+        _id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
       setMessages((prev) => [
         ...prev,
-        { content: data.response, isUser: false },
+        { content: data.response, isUser: false, lastMessage:true },
       ]);
       setIsTyping(false);
-
-      // Update current session with new message
-      setCurrentSession((prev) => ({
-        ...prev,
-        [selectedSubject]: [
-          ...(prev[selectedSubject] || []),
-          {
-            query: message,
-            response: data.response,
-            tokensUsed: data.tokensUsed || 0,
-            _id: Date.now().toString(),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-        ],
-      }));
+  
+      // Ensure lastMessage is updated only for the latest query
+      setCurrentSession((prev) => {
+        const updatedQueries = [...(prev[selectedSubject] || []), newQuery];
+  
+        return {
+          ...prev,
+          [selectedSubject]: updatedQueries,
+        };
+      });
     } catch (error) {
       console.error("Error sending message:", error);
       setMessages((prev) => [
@@ -137,10 +138,12 @@ export default function ChatInterface() {
         {
           content: "Sorry, there was an error processing your request.",
           isUser: false,
+          lastMessage: false
         },
       ]);
     }
   };
+  
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 

@@ -48,7 +48,8 @@ export function ChatHeader() {
         </Avatar>
         <div>
           <p>How are you doing</p>
-          <p className="text-sm text-purple-400">{getFirstWord(userData?.name)}?</p>
+          <p className="text-sm text-purple-400">{getFirstWord(userData?.name)}<span className="text-white">?</span></p>
+          
         </div>
       </div>
       <div className="flex items-center gap-2">

@@ -2,6 +2,7 @@ export type Query = {
     query: string;
     response: string;
     tokensUsed: number;
+    lastMessage?:boolean;
     _id: string;
     createdAt: string;
     updatedAt: string;
@@ -38,3 +39,10 @@ export type Query = {
     subjects: string[];
   };
   
+  export type CustomComponentProps<T extends HTMLElement> = React.HTMLAttributes<T> & {
+    children?: React.ReactNode;
+  };
+  
+  export type CodeProps = CustomComponentProps<HTMLElement> & {
+    inline?: boolean;
+  };
