@@ -162,7 +162,7 @@ export default function ChatInterface() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
+console.log(messages,'messages-chat')
   return (
     <div className="flex h-screen p-2 text-white">
       <div className="absolute inset-0 w-screen -z-10">
