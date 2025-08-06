@@ -1,313 +1,211 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { v4 as uuidv4 } from "uuid";
-import { useToast } from "@/hooks/use-toast";
-import { Toaster } from "@/components/ui/toaster";
+import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
+import Sidebar from "@/components/admin/sidebar"
+import TopNav from "@/components/admin/top-nav"
+import DataTable from "@/components/admin/data-table"
+import AddUserModal from "@/components/admin/add-user-modal"
+import { Eye, ClipboardCopy, Trash2 } from "lucide-react"
+import StudentDetailsModal from "@/components/admin/student-details-modal"
+import { useToast } from "@/hooks/use-toast"
+import { Toaster } from "@/components/ui/toaster"
 
 interface User {
-  _id: string;
-  email: string;
-  password: string;
-  decryptedPassword?: string;
+  _id: string
+  email: string
+  password: string
+  decryptedPassword?: string
 }
 
-export default function AdminPage() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [users, setUsers] = useState<User[]>([]);
-  const { toast } = useToast();
-  const router = useRouter();
-  const [token, setToken] = useState<string | null>(null);
+export default function AdminDashboard() {
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [users, setUsers] = useState<User[]>([])
+  const [token, setToken] = useState<string | null>(null)
 
-  // Fetch token from localStorage only on the client side
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedToken = localStorage.getItem("accessToken");
-      if (!storedToken) {
-        router.push("/admin-login");
-      } else {
-        setToken(storedToken);
-      }
-    }
-  }, [router]);
+  const router = useRouter()
+  const { toast } = useToast()
 
-  // Memoize fetchUsers to prevent unnecessary recreations
-  const fetchUsers = useCallback(async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
-        headers: getAuthHeaders(),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const usersWithDecryptedPasswords = await Promise.all(
-          data.map(async (user: User) => ({
-            ...user,
-            decryptedPassword: await decryptPassword(user.password),
-          }))
-        );
-        setUsers(usersWithDecryptedPasswords);
-      }
-    } catch (error) {
-      console.error("Failed to fetch users:", error);
-    }
-  }, [token]);
+  const [selectedUserForDetails, setSelectedUserForDetails] = useState<User | null>(null)
+  const [isUserDetailsModalOpen, setIsUserDetailsModalOpen] = useState(false)
 
-  // Fetch users when the token changes
-  useEffect(() => {
-    if (token) {
-      fetchUsers();
-    }
-  }, [token, fetchUsers]);
+  const columns = [
+    { key: "email", label: "Mail" },
+    { key: "decryptedPassword", label: "Password" },
+  ]
 
-  const getAuthHeaders = () => {
-    return {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    };
-  };
-
-  const decryptPassword = async (encryptedPassword: string) => {
-    try {
-      const response = await fetch("/api/decrypt", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ encryptedPassword }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to decrypt password");
-      }
-
-      const data = await response.json();
-      return data.decryptedPassword;
-    } catch (error) {
-      console.error("Decryption error:", error);
-      return null;
-    }
-  };
+  const copyUserDetails = (email: string, password: string) => {
+    navigator.clipboard.writeText(`Email: ${email}\nPassword: ${password}`)
+    toast({ title: "Copied!", description: "User details copied to clipboard" })
+  }
 
   const deleteUser = async (userId: string) => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/users?id=${userId}`,
-        {
-          method: "DELETE",
-          headers: getAuthHeaders(),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to delete user");
-      }
-
-      // Update the local state to remove the deleted user
-      setUsers(users.filter((user) => user._id !== userId));
-
-      toast({
-        title: "Success",
-        description: "User deleted successfully",
-      });
-    } catch (error) {
-      console.error("Delete error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete user",
-      });
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users?id=${userId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      })
+      if (!response.ok) throw new Error('Failed to delete user')
+      setUsers(users.filter(user => user._id !== userId))
+      toast({ title: 'Success', description: 'User deleted successfully' })
+    } catch (err) {
+      console.error('Failed to delete user:', err)
+      toast({ title: 'Error', description: 'Could not delete user' })
     }
-  };
+  }
 
-  const generatePassword = () => {
-    setPassword(uuidv4());
-  };
+  const actions = [
+    {
+      icon: Eye,
+      label: 'View Details',
+      onClick: (row: User) => {
+        setSelectedUserForDetails(row)
+        setIsUserDetailsModalOpen(true)
+      },
+      variant: 'view' as const,
+    },
+    {
+      icon: ClipboardCopy,
+      label: 'Copy',
+      onClick: (row: User) => copyUserDetails(row.email, row.decryptedPassword || row.password),
+      variant: 'edit' as const,
+    },
+    {
+      icon: Trash2,
+      label: 'Delete',
+      onClick: (row: User) => deleteUser(row._id),
+      variant: 'delete' as const,
+    },
+  ]
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleAddUser = async ({ email, password }: { email: string; password: string }) => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/register`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email,
-            password,
-          }),
-        }
-      );
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ email, password }),
+      })
+      if (!response.ok) throw new Error('Registration failed')
+      const newUser = await response.json()
+      const decryptedPassword = await decryptPassword(password)
+      setUsers([...users, { _id: newUser._id, email, password, decryptedPassword }])
+      toast({ title: 'Success', description: 'User registered successfully' })
+    } catch (err) {
+      console.error('Failed to register user:', err)
+      toast({ title: 'Error', description: 'Failed to register user' })
+    }
+  }
 
-      if (!response.ok) {
-        throw new Error("Failed to register user");
+  // Token retrieval & user list fetch
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('accessToken')
+      // //console.log("Admin page - checking token:", stored ? "Token found" : "No token")
+      if (!stored) {
+        // //console.log("Admin page - No token found, redirecting to login")
+        router.push('/admin-login')
+      } else {
+        // //console.log("Admin page - Token found, setting token")
+        setToken(stored)
+      }
+    }
+  }, [router])
+
+  const getAuthHeaders = () => ({
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  })
+
+  const decryptPassword = async (encrypted: string) => {
+    try {
+      const res = await fetch('/api/decrypt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ encryptedPassword: encrypted }),
+      })
+      if (!res.ok) throw new Error('decrypt')
+      const data = await res.json()
+      return data.decryptedPassword
+    } catch {
+      return encrypted
+    }
+  }
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      // //console.log("Admin page - Fetching users with token:", token ? "Token present" : "No token")
+      const headers = getAuthHeaders()
+      // //console.log("Admin page - Auth headers:", headers)
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, { headers })
+      // //console.log("Admin page - Users fetch response status:", res.status)
+
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error("Admin page - Users fetch failed:", errorText)
+        throw new Error(`fetch failed: ${res.status}`)
       }
 
-      const newUser = await response.json();
-      setUsers([...users, { email, password, _id: newUser._id }]);
-      setIsDialogOpen(false);
-      setEmail("");
-      setPassword("");
+      const data: User[] = await res.json()
+      // //console.log("Admin page - Users data received:", data.length, "users")
 
-      toast({
-        title: "Success",
-        description: "User registered successfully",
-      });
+      const list = await Promise.all(
+        data.map(async u => ({ ...u, decryptedPassword: await decryptPassword(u.password) }))
+      )
+      setUsers(list)
     } catch (error) {
-      console.error("Registration error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to register user",
-      });
+      console.error("Admin page - Error fetching users:", error)
+      toast({ title: 'Error', description: 'Failed to load users' })
     }
-  };
+  }, [token, getAuthHeaders, toast])
 
-  const copyUserDetails = (email: string, password: string) => {
-    navigator.clipboard.writeText(`Email: ${email}\nPassword: ${password}`);
-    toast({
-      title: "Copied!",
-      description: "User details have been copied to clipboard.",
-    });
-  };
+  useEffect(() => {
+    if (token) fetchUsers()
+  }, [token, fetchUsers])
 
-  const handleLogout = () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("accessToken");
-    }
-    router.push("/admin-login");
-  };
+  const [page, setPage] = useState(1)
+  const pageSize = 10
+
+  const breadcrumbs = [{ label: "Admin Dashboard", href: "/dashboard" }, { label: "Student Details" }]
 
   return (
-    <>
-      <div className="container mx-auto p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-          <Button
-            className="mb-4 bg-white text-[#4024B9] hover:bg-gray-100 rounded-[13px]"
-            onClick={handleLogout}
-          >
-            Logout
-          </Button>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <Sidebar />
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Navigation */}
+        <TopNav title="Admin Dashboard" breadcrumbs={breadcrumbs} />
+
+        {/* Content */}
+        <div className="flex-1 p-6">
+          <DataTable
+            title="Students"
+            count={users.length}
+            columns={columns}
+            data={users as unknown as Record<string, unknown>[]}
+            actions={actions as unknown as Array<{ icon: React.ComponentType<{ className?: string }>; label: string; onClick: (row: Record<string, unknown>) => void; variant?: "default" | "edit" | "delete" | "view" }>}
+            onAddNew={() => setIsModalOpen(true)}
+            addButtonLabel="Add User"
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+          />
         </div>
-
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="mb-4 bg-white text-[#4024B9] hover:bg-gray-100 rounded-[13px]">
-              Add a User
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-white text-black bg-gradient-to-r from-[#4024B9] to-[#8640FF] hover:opacity-90 rounded-[13px]">
-            <DialogHeader>
-              <DialogTitle>Add New User</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter user's email"
-                  className="bg-white text-black rounded-[8px]"
-                  required
-                />
-              </div>
-              <div className="flex space-x-2">
-                <div className="flex-grow">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter password"
-                    className="bg-white text-black rounded-[8px]"
-                    required
-                  />
-                </div>
-                <Button
-                  type="button"
-                  onClick={generatePassword}
-                  className="mt-6 bg-white text-[#4024B9] hover:bg-gray-100 rounded-[13px]"
-                >
-                  Generate GUID
-                </Button>
-              </div>
-              <Button
-                className="bg-white text-[#4024B9] hover:bg-gray-100 rounded-[13px]"
-                type="submit"
-              >
-                Add User
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {users.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Password</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user, index) => (
-                <TableRow key={index}>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    {user.decryptedPassword || "Failed to decrypt"}
-                  </TableCell>
-                  <TableCell className="space-x-2">
-                    <Button
-                      className="bg-white text-[#4024B9] hover:bg-gray-100 rounded-[13px]"
-                      onClick={() =>
-                        copyUserDetails(
-                          user.email,
-                          user.decryptedPassword || user.password
-                        )
-                      }
-                    >
-                      Copy
-                    </Button>
-                    <Button
-                      className="bg-red-500 text-white hover:bg-red-600 rounded-[13px]"
-                      onClick={() => deleteUser(user._id)}
-                    >
-                      Delete
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
       </div>
+
+      {/* Add User Modal */}
+      <AddUserModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleAddUser} />
+
+      {/* Student Details Modal */}
+      <StudentDetailsModal
+        isOpen={isUserDetailsModalOpen}
+        onClose={() => setIsUserDetailsModalOpen(false)}
+        student={selectedUserForDetails}
+      />
+
       <Toaster />
-    </>
-  );
+    </div>
+  )
 }

@@ -13,9 +13,10 @@ interface MessageBubbleProps {
   avatarSrc?: string;
   isTyping?: boolean;
   lastMessage?: boolean;
+  typingSpeed?: number; // <-- add this
 }
 
-export function MessageBubble({ content, isUser, avatarSrc, isTyping, lastMessage }: MessageBubbleProps) {
+export function MessageBubble({ content, isUser, avatarSrc, isTyping, lastMessage, typingSpeed = 10 }: MessageBubbleProps) {
   const safeContent = content || "Please ask relevant questions.";
 
   const processContent = (text: string) => {
@@ -49,7 +50,7 @@ export function MessageBubble({ content, isUser, avatarSrc, isTyping, lastMessag
       <li className="my-1" {...props}>{children}</li>
     ),
     code: ({ inline, children, ...props }: CodeProps) => (
-      <code className={`${inline ? "bg-gray-800 px-1" : "block bg-gray-800 p-2 overflow-x-auto"} rounded`} {...props}>
+      <code className={`${inline ? "bg-[#309CEC] px-1" : "block bg-[#309CEC] p-2 overflow-x-auto"} rounded`} {...props}>
         {children}
       </code>
     ),
@@ -67,8 +68,8 @@ export function MessageBubble({ content, isUser, avatarSrc, isTyping, lastMessag
       <div
         className={`rounded-2xl p-4 max-w-[80%] overflow-auto ${
           isUser
-            ? "bg-gradient-to-r from-[#4024B9] to-[#8640FF] text-white"
-            : "bg-[#232323] text-[#E6E6E6] border border-[#C6C6C682]"
+            ? "bg-[#309CEC] text-white"
+            : "bg-[#309CEC] text-[#E6E6E6] border border-[#C6C6C682]"
         }`}
       >
         {isTyping ? (
@@ -78,7 +79,7 @@ export function MessageBubble({ content, isUser, avatarSrc, isTyping, lastMessag
             <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-400" />
           </div>
         ) : lastMessage ? (
-          <TypingText text={formattedContent} />
+          <TypingText text={formattedContent} speed={typingSpeed} />
         ) : (
           <ReactMarkdown
             remarkPlugins={[remarkMath]}

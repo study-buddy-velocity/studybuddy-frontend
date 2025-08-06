@@ -25,10 +25,10 @@ export function Hero() {
               Personalized tools to boost your preparation and get you closer to your dream institute.
             </p>
             <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-              <Button size="lg" className="bg-gradient-to-r from-[#4024B9] to-[#8640FF] hover:opacity-90 rounded-[13px]">
+              <Button size="lg" className="bg-gradient-to-r from-[#4024B9] to-[#8640FF] hover:opacity-90 rounded-lg">
                 Meet my Buddy!
               </Button>
-              <Button size="lg" variant="outline" className="bg-white text-[#4024B9] hover:bg-gray-100 rounded-[13px]">
+              <Button size="lg" variant="outline" className="bg-white text-[#4024B9] hover:bg-gray-100 rounded-lg">
                 View Features
               </Button>
             </div>

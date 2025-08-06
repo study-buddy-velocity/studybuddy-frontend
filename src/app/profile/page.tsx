@@ -44,10 +44,10 @@ export default function ProfilePage() {
 
   useEffect(() => {
     fetchUserData();
-  }, []);
+  }, []) // fetchUserData is stable, no need to add as dependency;
 
   return (
-    <div className="min-h-screen" style={{ background: "#090017" }}>
+    <div className="min-h-screen bg-white">
       <NavBar />
       <main className="container p-4 mx-auto space-y-4">
         {/* First Row */}

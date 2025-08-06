@@ -37,15 +37,15 @@ const ProfileDropdown = ({ userName }: ProfileDropdownProps) => {
     try {
       // Clear all items from localStorage
       localStorage.clear();
-      
+
       // Show success toast
       toast({
         title: "Logged out successfully",
         description: "You have been logged out of your account",
       });
 
-      // Redirect to login page
-      router.push('/info/start');
+      // Redirect to intro page with LoginPage component
+      router.push('/intro');
     } catch (error) {
       console.error("Logout error:", error);
       toast({
@@ -66,7 +66,7 @@ const ProfileDropdown = ({ userName }: ProfileDropdownProps) => {
           </Avatar>
         </DropdownMenuTrigger>
         <DropdownMenuContent 
-          className="bg-white text-black border border-black rounded-[20px] shadow-lg"
+          className="bg-white text-black border border-black rounded-lg shadow-lg"
         >
           <DropdownMenuItem 
             onSelect={(e) => {

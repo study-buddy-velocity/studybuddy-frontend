@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from '@/hooks/useAuthenticationHook';
+import { subjectApi, Subject } from '@/lib/api/quiz';
+import QuizCard from './quiz-card';
 
 type HistoryDataItem = {
   _id: string
@@ -36,30 +38,65 @@ interface SidebarContentProps {
   onSubjectSelect: (subject: string) => void
   currentSubject: string
   isLoading: boolean
+  currentTopic?: string
+  subjectName?: string
+  topicName?: string
 }
 
 interface UserStreakProps {
   streak: number | 0;
 }
 
-export function SidebarContent({ 
-  onNewSession, 
-  chatHistory = [], 
-  onSubjectSelect, 
+export function SidebarContent({
+  onNewSession,
+  chatHistory = [],
+  onSubjectSelect,
   currentSubject,
-  isLoading 
+  isLoading,
+  currentTopic,
+  subjectName,
+  topicName
 }: SidebarContentProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [userStreak, setUserStreak] = useState<UserStreakProps | null>(null);
-  const [isStreakLoading, setIsStreakLoading] = useState(true);
+  const [, setUserStreak] = useState<UserStreakProps | null>(null);
+  const [, setIsStreakLoading] = useState(true);
+  const [subjectMap, setSubjectMap] = useState<{[key: string]: Subject}>({});
+  const [subjectsLoading, setSubjectsLoading] = useState(false);
   const { getAuthHeaders } = useAuth();
   
+  // Fetch subjects for mapping IDs to names
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        setSubjectsLoading(true);
+        const allSubjects = await subjectApi.getAll();
+        const mapping: {[key: string]: Subject} = {};
+        allSubjects.forEach(subject => {
+          mapping[subject._id] = subject;
+        });
+        setSubjectMap(mapping);
+      } catch (error) {
+        console.error('Failed to fetch subjects:', error);
+      } finally {
+        setSubjectsLoading(false);
+      }
+    };
+
+    fetchSubjects();
+  }, []);
+
   const subjects = isLoading || !Array.isArray(chatHistory) ? [] : [...new Set(
     chatHistory.reduce((acc: string[], item) => {
       const itemSubjects = item?.subjects || []
       return acc.concat(itemSubjects)
     }, [])
   )]
+
+  // Function to get display name for subject
+  const getSubjectDisplayName = (subjectId: string) => {
+    const subject = subjectMap[subjectId];
+    return subject ? subject.name : subjectId; // Fallback to ID if not found
+  };
 
   const handleSubjectClick = (subject: string) => {
     onSubjectSelect(subject);
@@ -76,21 +113,20 @@ export function SidebarContent({
     try {
       const token = localStorage.getItem('accessToken');
       if (!token) {
+        setUserStreak({ streak: 0 });
         setIsStreakLoading(false);
         return;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/chat-streak`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/chat/chat-streak`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
 
       if (!response.ok) {
-        if (response.status === 404) {
-          setUserStreak({ streak: 0 });
-        } else {
-          throw new Error(`Failed to fetch user data: ${response.status}`);
-        }
+        // For any error, just set streak to 0 instead of throwing
+        console.warn(`Chat streak API returned ${response.status}, defaulting to 0`);
+        setUserStreak({ streak: 0 });
       } else {
         const data = await response.json();
         setUserStreak(data);
@@ -105,13 +141,22 @@ export function SidebarContent({
 
   useEffect(() => {
     fetchStreakData();
-  }, []);
+  }, []); // fetchStreakData is stable, no need to add as dependency
 
   const SidebarItems = () => (
     <div className="space-y-4 w-full">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold">studybuddy</h1>
-        <div className="flex items-center gap-1">
+        {/* <h1 className="text-xl font-semibold">studybuddy</h1> */}
+                  <div className=" py-4 bg-gray-50 w-full">
+                <Image
+                  src="/assets/logo/studubuddy-logo-new.png" 
+                  alt="StudyBuddy Logo"
+                  width={160}
+                  height={40}
+                  className="h-auto"
+                />
+              </div>
+        {/* <div className="flex items-center gap-1">
           <Image
             src="/assets/buddy/streak_profile.svg"
             alt="Fire icon"
@@ -122,12 +167,12 @@ export function SidebarContent({
           <span className="text-lg text-muted-foreground">
             {isStreakLoading ? "..." : userStreak?.streak || 0}
           </span>
-        </div>
+        </div> */}
       </div>
 
-      <Button 
+      <Button
         onClick={handleNewSession}
-        className="w-full bg-gradient-to-r from-[#4024B9] to-[#8640FF] hover:opacity-90 text-[18px] font-bold py-2 rounded-[76px]"
+        className="w-full bg-[#309CEC] text-white text-[18px] font-bold py-2 rounded-[76px] hover:bg-[#309CEC]/80 transition-colors"
       >
         + Start a New Session
       </Button>
@@ -136,21 +181,21 @@ export function SidebarContent({
         <h2 className="text-sm text-gray-400">Recent Subjects</h2>
         <ScrollArea className="h-[250px] w-full pr-4">
           <div className="space-y-2">
-            {isLoading ? (
+            {isLoading || subjectsLoading ? (
               <div className="text-gray-400 text-center py-4">Loading...</div>
             ) : subjects.length > 0 ? (
               subjects.map((subject, i) => (
                 <Button
                   key={i}
                   variant="ghost"
-                  className={`w-full text-[16px] py-2 rounded-[76px] ${
-                    currentSubject === subject 
-                      ? 'bg-[#4024B9] text-white hover:bg-[#4024B9]' 
-                      : 'text-[#858585] bg-[#F9F5FF] hover:bg-[#858585]'
+                  className={`w-full text-[16px] py-2 rounded-full transition-colors ${
+                    currentSubject === subject
+                      ? 'bg-[#309CEC] text-[#F9F5FF]'
+                      : 'text-[#858585] bg-[#F9F5FF] hover:bg-[#F9F5FF]/70'
                   }`}
                   onClick={() => handleSubjectClick(subject)}
                 >
-                  {subject}
+                  {getSubjectDisplayName(subject)}
                 </Button>
               ))
             ) : (
@@ -161,22 +206,12 @@ export function SidebarContent({
       </div>
 
       <div className="pt-2">
-        <Card className="p-4 border-none">
-          <p className="text-lg font-medium">
-            {isStreakLoading 
-              ? "Loading streak..." 
-              : `You are on a ${userStreak?.streak || 0} Day Streak!`}
-          </p>
-          <p className="text-xs text-gray-400">Dream big, start small, act now.</p>
-          <div className="w-[250px] h-[200px] relative rounded-[22.5px] overflow-hidden flex-shrink-0 p-4">
-            <Image
-              src="/assets/buddy/Joy-Profile-Priorities.png"
-              alt="Priority mascot"
-              fill
-              className="object-cover"
+            <QuizCard
+              currentSubject={currentSubject}
+              currentTopic={currentTopic}
+              subjectName={subjectName}
+              topicName={topicName}
             />
-          </div>
-        </Card>
       </div>
     </div>
   );
@@ -194,7 +229,7 @@ export function SidebarContent({
               <Menu className="h-8 w-8" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-80 bg-[#232323] border-r border-[#C6C6C682] p-4">
+          <SheetContent side="left" className="w-80 bg-white border-r border-[#309CEC] p-4">
             <SheetHeader className="mb-4">
               <SheetTitle className="text-white"></SheetTitle>
             </SheetHeader>
@@ -204,7 +239,7 @@ export function SidebarContent({
       </div>
 
       {/* Desktop Sidebar */}
-      <div className="hidden md:block w-80 bg-[#232323] rounded-[14px] border border-[#C6C6C682] p-4">
+<div className="hidden md:block w-80 bg-white rounded-lg border border-[#309CEC] p-4">
         <SidebarItems />
       </div>
     </>

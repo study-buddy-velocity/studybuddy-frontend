@@ -4,8 +4,16 @@ import { useEffect, useState } from "react"
 import { getFirstWord, UserData } from "@/lib/utils"
 import { useAuth } from "@/hooks/useAuthenticationHook"
 import ProfileDropdown from "./profileDropdown";
+import { Button } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
 
-export function ChatHeader() {
+interface ChatHeaderProps {
+  subjectName?: string;
+  topicName?: string;
+  onRaiseIssue?: () => void;
+}
+
+export function ChatHeader({ subjectName, topicName, onRaiseIssue }: ChatHeaderProps) {
   const [userData, setUserData] = useState<UserData>({
     dob: "",
     name: "",
@@ -37,7 +45,7 @@ export function ChatHeader() {
 
   useEffect(() => {
     fetchUserData();
-  }, []); // Now fetchUserData is stable and won't cause unnecessary re-renders
+  }, []) // fetchUserData is stable, no need to add as dependency; // Now fetchUserData is stable and won't cause unnecessary re-renders
 
   return (
     <header className="border-b border-[#C6C6C682] p-4 flex items-center justify-between">
@@ -47,12 +55,31 @@ export function ChatHeader() {
           <AvatarFallback>AI</AvatarFallback>
         </Avatar>
         <div>
-          <p>How are you doing</p>
-          <p className="text-sm text-purple-400">{getFirstWord(userData?.name)}<span className="text-white">?</span></p>
-          
+          {subjectName && topicName ? (
+            <>
+              <p className="font-medium">{subjectName}</p>
+              <p className="text-sm text-[#309CEC]">{topicName}</p>
+            </>
+          ) : (
+            <>
+              <p>How are you doing</p>
+              <p className="text-sm text-[#309CEC]">{getFirstWord(userData?.name)}<span className="text-white">?</span></p>
+            </>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-2">
+        {onRaiseIssue && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRaiseIssue}
+            className="flex items-center gap-2"
+          >
+            <AlertCircle className="w-4 h-4" />
+            Raise Issue
+          </Button>
+        )}
         <ProfileDropdown userName={userData?.name} />
       </div>
     </header>

@@ -3,7 +3,7 @@ import { UserData } from "@/lib/utils"
 import Image from "next/image"
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from '@/hooks/useAuthenticationHook'
-import { getTokenSub } from "@/lib/jwt-utils"
+
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { userApi } from '@/lib/api/user';
 
 interface UserStreakProps {
   streak: number | 0;
@@ -30,7 +31,6 @@ export function ProfileInfo({ userData }: ProfileInfoProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { getAuthHeaders } = useAuth();
-  const userId = getTokenSub();
 
   useEffect(() => {
     setEditedData(userData);
@@ -99,22 +99,17 @@ export function ProfileInfo({ userData }: ProfileInfoProps) {
   const handleSubmit = async () => {
     setIsLoading(true);
     try {
-      // Single PUT request with all data including base64 image
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${userId}/user-details`, {
-        method: 'PUT',
-        headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(editedData), // This now includes the base64 image string
+      // Always send all required fields for update
+      await userApi.updateUserDetails({
+        dateOfBirth: editedData.dob,
+        name: editedData.name,
+        phoneNumber: editedData.phoneno,
+        school: editedData.schoolName,
+        class: editedData.class,
+        subjects: editedData.subjects,
+        profileImage: editedData.profileImage,
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to update user data');
-      }
-
       setIsEditing(false);
-      // console.log('Profile updated successfully');
     } catch (error) {
       console.error('Error updating profile:', error);
     } finally {
@@ -148,10 +143,10 @@ export function ProfileInfo({ userData }: ProfileInfoProps) {
 
   useEffect(() => {
     fetchStreakData();
-  }, []);
+  }, []); // fetchStreakData is stable, no need to add as dependency
 
   return (
-    <div className="p-6 rounded-[22.5px] border-2 border-[#737373] h-full" style={{ background: "#232323" }}>
+    <div className="p-6 rounded-lg border-2 border-blue-200 bg-white h-full">
       <div className="flex flex-col sm:flex-row gap-6">
         <div className="flex flex-col items-center gap-4">
           <div className="relative w-[220px] h-[220px]">
@@ -165,7 +160,7 @@ export function ProfileInfo({ userData }: ProfileInfoProps) {
         </div>
         <div className="flex-1 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm text-muted-foreground">Basic Info</h3>
+            <h3 className="text-sm text-gray-600">Basic Info</h3>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
                 <Image
@@ -175,7 +170,7 @@ export function ProfileInfo({ userData }: ProfileInfoProps) {
                   height={16}
                   className="opacity-70"
                 />
-                <span className="text-xs text-muted-foreground">{userStreak?.streak}</span>
+                <span className="text-xs text-gray-600">{userStreak?.streak}</span>
               </div>
             </div>
           </div>
@@ -185,7 +180,7 @@ export function ProfileInfo({ userData }: ProfileInfoProps) {
               name="name"
               value={editedData.name}
               onChange={handleInputChange}
-              className="w-full bg-[#3B3B3B] text-white placeholder:text-white/50 py-4 px-4 rounded-[10.79px]"
+              className="w-full bg-blue-50 border border-blue-200 text-gray-800 placeholder:text-gray-500 py-4 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Name"
             />
             <input
@@ -193,7 +188,7 @@ export function ProfileInfo({ userData }: ProfileInfoProps) {
               name="schoolName"
               value={editedData.schoolName}
               onChange={handleInputChange}
-              className="w-full bg-[#3B3B3B] text-white placeholder:text-white/50 py-4 px-4 rounded-[10.79px]"
+              className="w-full bg-blue-50 border border-blue-200 text-gray-800 placeholder:text-gray-500 py-4 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="School Name"
             />
             <input
@@ -201,7 +196,7 @@ export function ProfileInfo({ userData }: ProfileInfoProps) {
               name="class"
               value={editedData.class}
               onChange={handleInputChange}
-              className="w-full bg-[#3B3B3B] text-white placeholder:text-white/50 py-4 px-4 rounded-[10.79px]"
+              className="w-full bg-gray-100 border border-gray-300 text-gray-600 placeholder:text-gray-400 py-4 px-4 rounded-lg cursor-not-allowed"
               placeholder="Class"
               disabled
             />
@@ -212,7 +207,7 @@ export function ProfileInfo({ userData }: ProfileInfoProps) {
         {!isEditing && (
           <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="w-full text-black bg-[#DEDEDE] hover:bg-white">
+              <Button className="w-full text-blue-600 bg-blue-100 hover:bg-blue-200 border border-blue-200">
                 Change Picture
               </Button>
             </DialogTrigger>
@@ -239,13 +234,13 @@ export function ProfileInfo({ userData }: ProfileInfoProps) {
         {isEditing ? (
           <>
             <Button
-              className="w-full text-black bg-[#DEDEDE] hover:bg-white"
+              className="w-full text-gray-600 bg-gray-100 hover:bg-gray-200 border border-gray-300"
               onClick={handleCancel}
             >
               Cancel
             </Button>
             <Button
-              className="w-full bg-indigo-600 hover:bg-indigo-700"
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white"
               onClick={handleSubmit}
               disabled={isLoading}
             >
@@ -254,7 +249,7 @@ export function ProfileInfo({ userData }: ProfileInfoProps) {
           </>
         ) : (
           <Button
-            className="w-full bg-indigo-600 hover:bg-indigo-700"
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white"
             onClick={() => setIsEditing(true)}
           >
             Edit Profile

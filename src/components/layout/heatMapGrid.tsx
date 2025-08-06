@@ -43,7 +43,7 @@ export const HeatmapGrid: React.FC<HeatmapGridProps> = ({ heatMapData, subjectCo
     {entry.subjects.map((subject, rowIndex) => (
       <div
         key={`cell-${colIndex}-${rowIndex}`}
-        className={`w-6 h-6 max-sm:w-2 max-sm:h-2 rounded max-sm:rounded-sm border border-[#A1A1A14D] ${subjectColors[subject]}`}
+        className={`w-6 h-6 max-sm:w-2 max-sm:h-2 rounded max-sm:rounded-sm border border-blue-200 ${subjectColors[subject]}`}
       ></div>
     ))}
   </div>

@@ -9,9 +9,9 @@ export function Recommendations({userData} : ProfileInfoProps) {
 
   const recommendedSubjects = getNonRepeatingValues(userData.subjects, subjectOptions)
   return (
-    <div className="p-6 rounded-[22.5px] border-2 border-[#737373] h-full" style={{ background: "#232323" }}>
+    <div className="p-6 rounded-lg border-2 border-blue-200 bg-white h-full">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-12 h-12 rounded-[50%] overflow-hidden bg-[#8640FF]">
+        <div className="w-12 h-12 rounded-[50%] overflow-hidden bg-blue-500">
           <Image
             src="/assets/buddy/Joy-profile-icon.svg"
             alt="Recommendation mascot"
@@ -21,12 +21,12 @@ export function Recommendations({userData} : ProfileInfoProps) {
           />
         </div>
         <div>
-          <h2 className="text-lg font-medium">{userData.name}, This is what you should</h2>
-          <p className="text-sm text-muted-foreground">focus on in my opinion...</p>
+          <h2 className="text-lg font-medium text-gray-800">{userData.name}, This is what you should</h2>
+          <p className="text-sm text-gray-600">focus on in my opinion...</p>
         </div>
       </div>
-      
-      <div className="mt-4  text-sm text-muted-foreground">Recommended Subjects</div>
+
+      <div className="mt-4 text-sm text-gray-600">Recommended Subjects</div>
       
       <ScrollArea 
         className="h-[300px] pr-4 mt-4" 
@@ -42,7 +42,7 @@ export function Recommendations({userData} : ProfileInfoProps) {
                     key={index}
                     type="text"
                     value={subject}
-                    className="w-full bg-[#3B3B3B] text-white placeholder:text-white/50 py-4 px-4 rounded-[10.79px]"
+                    className="w-full bg-blue-50 border border-blue-200 text-gray-800 placeholder:text-gray-500 py-4 px-4 rounded-lg"
                     readOnly
                   />
                 ))

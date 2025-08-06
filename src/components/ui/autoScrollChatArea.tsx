@@ -59,6 +59,7 @@ const AutoScrollChatArea: React.FC<AutoScrollChatAreaProps> = ({ messages, isTyp
           isUser={message.isUser}
           avatarSrc={message.isUser ? "/assets/buddy/default_profile_pic.png" : "/assets/buddy/Joy-profile-icon.svg"}
           lastMessage={message.lastMessage && index === messages.length - 1}
+          typingSpeed={10}
         />
       ))}
       {isTyping && (

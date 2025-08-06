@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { ChatHeader } from "@/components/layout/ChatHeader";
 import { ChatInput } from "@/components/layout/ChatInput";
 import { SidebarContent } from "@/components/layout/SidebarContent";
@@ -10,25 +10,41 @@ import {
   HistoryDataItem,
   Query
 } from "@/lib/types/types";
-import {subjectOptions} from '@/lib/utils'
-import SubjectDialog from "@/components/ui/subjectSectionDialog";
+// import {subjectOptions} from '@/lib/utils'
+// import SubjectDialog from "@/components/ui/subjectSectionDialog";
 import AutoScrollChatArea from "@/components/ui/autoScrollChatArea";
 import { Toaster } from "@/components/ui/toaster";
-import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
+import RaiseIssueModal from "@/components/ui/raise-issue-modal";
 
-export default function ChatInterface() {
+function ChatInterfaceContent() {
   const { getAuthHeaders } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [messages, setMessages] = useState<
     Array<{ content: string; isUser: boolean; lastMessage:boolean }>
   >([]);
   const [selectedSubject, setSelectedSubject] = useState("");
-  const [showSubjectDialog, setShowSubjectDialog] = useState(true);
+  const [selectedTopic, setSelectedTopic] = useState("");
+  const [subjectName, setSubjectName] = useState("");
+  const [topicName, setTopicName] = useState("");
+  const [showDashboard, setShowDashboard] = useState(false);
   const [chatHistory, setChatHistory] = useState<HistoryDataItem[]>([]);
   const [currentSession, setCurrentSession] = useState<{
     [key: string]: Query[];
   }>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
+  const [showRaiseIssueModal, setShowRaiseIssueModal] = useState(false);
+
+  // Function to replace subject IDs with subject names in responses
+  const replaceSubjectIdsInResponse = (response: string): string => {
+    if (!subjectName || !selectedSubject) return response;
+
+    // Replace subject ID with subject name in the response
+    const subjectIdPattern = new RegExp(selectedSubject, 'g');
+    return response.replace(subjectIdPattern, subjectName);
+  };
 
   const fetchChatHistory = async () => {
     try {
@@ -70,12 +86,50 @@ export default function ChatInterface() {
 
   useEffect(() => {
     fetchChatHistory();
-  }, []);
+  }, []) // fetchChatHistory is stable, no need to add as dependency;
+
+  // Handle subject and topic parameters from URL
+  useEffect(() => {
+    const subjectFromUrl = searchParams.get('subject');
+    const topicFromUrl = searchParams.get('topic');
+    const subjectNameFromUrl = searchParams.get('subjectName');
+    const topicNameFromUrl = searchParams.get('topicName');
+
+    if (subjectFromUrl) {
+      setSelectedSubject(subjectFromUrl);
+      setShowDashboard(false);
+    } else {
+      // Only show dashboard if no subject parameter is present
+      setShowDashboard(true);
+    }
+
+    if (topicFromUrl) {
+      setSelectedTopic(topicFromUrl);
+    }
+    if (subjectNameFromUrl) {
+      setSubjectName(decodeURIComponent(subjectNameFromUrl));
+    }
+    if (topicNameFromUrl) {
+      setTopicName(decodeURIComponent(topicNameFromUrl));
+    }
+  }, [searchParams]);
+
+  // Redirect to dashboard if no subject is selected and we should show dashboard
+  useEffect(() => {
+    // Add a small delay to ensure URL parameters are processed first
+    const timer = setTimeout(() => {
+      if (showDashboard && !selectedSubject && !searchParams.get('subject')) {
+        router.push('/dashboard');
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [showDashboard, selectedSubject, router, searchParams]);
 
   // Rest of the component remains the same...
   const handleSubjectSelect = (subject: string) => {
     setSelectedSubject(subject);
-    setShowSubjectDialog(false);
+    setShowDashboard(false);
 
     if (currentSession[subject]) {
       const subjectMessages = currentSession[subject].flatMap((query) => [
@@ -89,8 +143,8 @@ export default function ChatInterface() {
   };
 
   const handleNewSession = () => {
-    setShowSubjectDialog(true);
-    setMessages([]);
+    // Navigate to dashboard instead of showing dialog
+    router.push('/dashboard');
   };
 
   const handleSendMessage = async (message: string) => {
@@ -100,16 +154,21 @@ export default function ChatInterface() {
     setIsTyping(true);
   
     try {
+      const topicParam = topicName ? `&topic=${encodeURIComponent(topicName)}` : '';
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/chat?subject=${selectedSubject}&query=${encodeURIComponent(message)}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/chat?subject=${selectedSubject}&query=${encodeURIComponent(message)}${topicParam}`,
         {
           headers: getAuthHeaders(),
         }
       );
       const data = await response.json();
+
+      // Replace subject IDs with subject names in the response
+      const processedResponse = replaceSubjectIdsInResponse(data.response);
+
       const newQuery: Query = {
         query: message,
-        response: data.response,
+        response: processedResponse,
         tokensUsed: data.tokensUsed || 0,
         // lastMessage: true,
         _id: Date.now().toString(),
@@ -118,7 +177,7 @@ export default function ChatInterface() {
       };
       setMessages((prev) => [
         ...prev,
-        { content: data.response, isUser: false, lastMessage:true },
+        { content: processedResponse, isUser: false, lastMessage:true },
       ]);
       setIsTyping(false);
   
@@ -162,26 +221,9 @@ export default function ChatInterface() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-console.log(messages,'messages-chat')
+// //console.log(messages,'messages-chat')
   return (
-    <div className="flex h-screen p-2 text-white">
-      <div className="absolute inset-0 w-screen -z-10">
-        <Image
-          src="/assets/backgrounds/WelcomeBG-2-3.png"
-          alt="Background image"
-          className="w-full h-full object-cover object-center"
-          fill // This makes the image fill the parent container
-          priority // Optional: Prioritize loading this image
-        />
-      </div>
-
-      {/* Subject Selection Dialog */}
-      <SubjectDialog
-        open={showSubjectDialog}
-        // onOpenChange={setShowSubjectDialog}
-        subjectOptions={subjectOptions}
-        handleSubjectSelect={handleSubjectSelect}
-      />
+    <div className="flex h-screen p-2 text-black bg-white">
       {/* Main Layout */}
       <div className="flex w-full gap-2">
         {/* Sidebar */}
@@ -191,16 +233,40 @@ console.log(messages,'messages-chat')
           onSubjectSelect={handleSubjectSelect}
           currentSubject={selectedSubject}
           isLoading={isLoading}
+          currentTopic={selectedTopic}
+          subjectName={subjectName}
+          topicName={topicName}
         />
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col bg-[#232323] rounded-[14px] border border-[#C6C6C682]">
-          <ChatHeader />
+        <div className="flex-1 flex flex-col bg-white rounded-lg border border-[#309CEC]">
+          <ChatHeader
+            subjectName={subjectName}
+            topicName={topicName}
+            onRaiseIssue={() => setShowRaiseIssueModal(true)}
+          />
           <AutoScrollChatArea messages={messages} isTyping ={isTyping }/>
           <ChatInput onSendMessage={handleSendMessage} />
         </div>
       </div>
+
+      {/* Raise Issue Modal */}
+      <RaiseIssueModal
+        isOpen={showRaiseIssueModal}
+        onClose={() => setShowRaiseIssueModal(false)}
+        currentSubject={subjectName}
+        currentTopic={topicName}
+      />
+
       <Toaster />
     </div>
+  );
+}
+
+export default function ChatInterface() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ChatInterfaceContent />
+    </Suspense>
   );
 }

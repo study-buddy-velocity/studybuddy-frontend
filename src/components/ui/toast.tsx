@@ -29,7 +29,7 @@ const Toast = React.forwardRef<
     <ToastPrimitives.Root
       ref={ref}
       className={cn(
-        "group pointer-events-auto relative flex w-full items-center justify-between space-x-2 overflow-hidden rounded-md border-none p-4 pr-6 shadow-lg transition-all bg-gradient-to-r from-[#4024B9] to-[#8640FF]",
+        "group pointer-events-auto relative flex w-full items-center justify-between space-x-2 overflow-hidden rounded-lg border bg-white p-4 pr-6 shadow-lg transition-all text-primary-blue",
         "data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none",
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out",
         "data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-bottom-full",

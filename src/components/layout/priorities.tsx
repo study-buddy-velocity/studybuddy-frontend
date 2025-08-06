@@ -7,10 +7,10 @@ interface ProfileInfoProps {
 
 export function Priorities({ userData }: ProfileInfoProps) {
   return (
-    <div className="p-6 rounded-[22.5px] border-2 border-[#737373] h-full" style={{ background: "#232323" }}>
+    <div className="p-6 rounded-lg border-2 border-blue-200 bg-white h-full">
       <div className="flex flex-col sm:flex-row gap-6">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-[250px] h-[250px] relative rounded-[22.5px] overflow-hidden flex-shrink-0">
+          <div className="w-[250px] h-[250px] relative rounded-lg overflow-hidden flex-shrink-0">
             <Image
               src="/assets/buddy/Joy-Profile-Priorities.png"
               alt="Priority mascot"
@@ -21,7 +21,7 @@ export function Priorities({ userData }: ProfileInfoProps) {
         </div>
         <div className="flex-1 space-y-4">
           <div>
-            <h2 className="text-2xl font-semibold mb-1">
+            <h2 className="text-2xl font-semibold mb-1 text-gray-800">
               {`${getFirstWord(userData.name)}'s priorities`}
             </h2>
             {/* <p className="text-xl text-muted-foreground">Let's Update'em!</p> */}
@@ -32,7 +32,7 @@ export function Priorities({ userData }: ProfileInfoProps) {
                 key={index}
                 type="text"
                 value={subject}
-                className="w-full bg-[#3B3B3B] text-white placeholder:text-white/50 py-4 px-4 rounded-[10.79px]"
+                className="w-full bg-blue-50 border border-blue-200 text-gray-800 placeholder:text-gray-500 py-4 px-4 rounded-[10.79px]"
                 readOnly
               />
             ))}

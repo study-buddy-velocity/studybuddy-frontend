@@ -10,13 +10,13 @@ export function Toaster() {
         return (
           <Toast key={id} {...props}>
             <div className="grid gap-1">
-              {title && <ToastTitle className="text-white font-semibold">{title}</ToastTitle>}
+              {title && <ToastTitle className="font-semibold text-primary-blue">{title}</ToastTitle>}
               {description && (
-                <ToastDescription className="text-white/90">{description}</ToastDescription>
+                <ToastDescription className="text-primary-blue/90">{description}</ToastDescription>
               )}
             </div>
             {action}
-            <ToastClose className="text-white/70 hover:text-white" />
+            <ToastClose className="text-primary-blue/70 hover:text-primary-blue" />
           </Toast>
         )
       })}
