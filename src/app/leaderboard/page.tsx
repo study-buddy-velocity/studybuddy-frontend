@@ -8,7 +8,7 @@ import { AppSidebar } from "@/components/dashboard/app-sidebar"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { Lightbulb } from "lucide-react"
 import { useState, useEffect } from "react"
-import { LeaderboardAPI, LeaderboardUser, SUBJECT_OPTIONS, CLASS_OPTIONS } from "@/lib/api/leaderboard"
+import { LeaderboardAPI, LeaderboardUser, SubjectClassAPI } from "@/lib/api/leaderboard"
 import { useAuth } from "@/hooks/useAuthenticationHook"
 
 export default function LeaderboardPage() {
@@ -24,6 +24,40 @@ export default function LeaderboardPage() {
   const [currentPeriod, setCurrentPeriod] = useState<'weekly' | 'monthly' | 'all'>('all')
   const [currentSubject, setCurrentSubject] = useState("")
   const [currentClass, setCurrentClass] = useState("")
+
+  // Data states for dropdowns
+  const [subjects, setSubjects] = useState<string[]>([])
+  const [classes, setClasses] = useState<string[]>([])
+  const [isLoadingOptions, setIsLoadingOptions] = useState(true)
+
+  // Fetch subjects and classes from backend
+  const fetchSubjectsAndClasses = async () => {
+    try {
+      setIsLoadingOptions(true)
+
+      const [fetchedSubjects, fetchedClasses] = await Promise.all([
+        SubjectClassAPI.getSubjects(),
+        Promise.resolve(SubjectClassAPI.getClasses())
+      ])
+
+      setSubjects(fetchedSubjects)
+      setClasses(fetchedClasses)
+    } catch (error) {
+      console.error('Failed to fetch subjects and classes:', error)
+      // Set fallback data if API fails
+      setSubjects([
+        'Mathematics',
+        'Physics',
+        'Chemistry',
+        'Biology',
+        'English',
+        'Computer Science'
+      ])
+      setClasses(SubjectClassAPI.getClasses())
+    } finally {
+      setIsLoadingOptions(false)
+    }
+  }
 
   // Fetch leaderboard data
   const fetchLeaderboard = async () => {
@@ -88,6 +122,11 @@ export default function LeaderboardPage() {
     setCurrentClass(classFilter)
   }
 
+  // Fetch subjects and classes on component mount
+  useEffect(() => {
+    fetchSubjectsAndClasses()
+  }, [])
+
   // Fetch data on component mount and filter changes
   useEffect(() => {
     fetchLeaderboard()
@@ -122,8 +161,8 @@ export default function LeaderboardPage() {
             currentPeriod={currentPeriod}
             currentSubject={currentSubject}
             currentClass={currentClass}
-            subjects={SUBJECT_OPTIONS}
-            classes={CLASS_OPTIONS}
+            subjects={subjects}
+            classes={classes}
           />
 
           {/* Desktop Layout: Two columns */}

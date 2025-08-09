@@ -191,10 +191,10 @@ console.log(loading);
       console.error('Failed to load subjects:', error)
       // Fallback to default subjects
       setSubjects([
-        { id: "1", subject: "Maths", color: "bg-blue-500", image: "/placeholder.svg?height=64&width=64" },
-        { id: "2", subject: "Physics", color: "bg-orange-500", image: "/placeholder.svg?height=64&width=64" },
-        { id: "3", subject: "Biology", color: "bg-red-500", image: "/placeholder.svg?height=64&width=64" },
-        { id: "4", subject: "Chemistry", color: "bg-green-500", image: "/placeholder.svg?height=64&width=64" },
+        { id: "1", subject: "Maths", color: "bg-blue-500", image: "/assets/backgrounds/math-teacher.png" },
+        { id: "2", subject: "Physics", color: "bg-orange-500", image: "/assets/backgrounds/physics-teacher.png" },
+        { id: "3", subject: "Biology", color: "bg-red-500", image: "/assets/backgrounds/bio-teacher.png" },
+        { id: "4", subject: "Chemistry", color: "bg-green-500", image: "/assets/backgrounds/chem-teacher.png" },
       ])
     } finally {
       setLoading(false)

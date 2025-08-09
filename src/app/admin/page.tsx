@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Sidebar from "@/components/admin/sidebar"
 import TopNav from "@/components/admin/top-nav"
@@ -22,6 +22,8 @@ export default function AdminDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [token, setToken] = useState<string | null>(null)
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
+  const [decryptionCache, setDecryptionCache] = useState<Map<string, string>>(new Map())
 
   const router = useRouter()
   const { toast } = useToast()
@@ -48,6 +50,8 @@ export default function AdminDashboard() {
       if (!response.ok) throw new Error('Failed to delete user')
       setUsers(users.filter(user => user._id !== userId))
       toast({ title: 'Success', description: 'User deleted successfully' })
+      // Refresh the user list to ensure consistency
+      setTimeout(() => refreshUsers(), 1000)
     } catch (err) {
       console.error('Failed to delete user:', err)
       toast({ title: 'Error', description: 'Could not delete user' })
@@ -78,6 +82,11 @@ export default function AdminDashboard() {
     },
   ]
 
+  const refreshUsers = () => {
+    // Force a page reload to refresh data
+    window.location.reload()
+  }
+
   const handleAddUser = async ({ email, password }: { email: string; password: string }) => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
@@ -90,33 +99,79 @@ export default function AdminDashboard() {
       const decryptedPassword = await decryptPassword(password)
       setUsers([...users, { _id: newUser._id, email, password, decryptedPassword }])
       toast({ title: 'Success', description: 'User registered successfully' })
+      // Refresh the user list to ensure consistency
+      setTimeout(() => refreshUsers(), 1000)
     } catch (err) {
       console.error('Failed to register user:', err)
       toast({ title: 'Error', description: 'Failed to register user' })
     }
   }
 
-  // Token retrieval & user list fetch
+  // Token retrieval and user fetching
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('accessToken')
-      // //console.log("Admin page - checking token:", stored ? "Token found" : "No token")
-      if (!stored) {
-        // //console.log("Admin page - No token found, redirecting to login")
-        router.push('/admin-login')
-      } else {
-        // //console.log("Admin page - Token found, setting token")
+    const loadData = async () => {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('accessToken')
+        if (!stored) {
+          router.push('/admin-login')
+          return
+        }
+
         setToken(stored)
+        setIsLoadingUsers(true)
+
+        try {
+          const headers = {
+            Authorization: `Bearer ${stored}`,
+            'Content-Type': 'application/json',
+          }
+
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
+            headers,
+            cache: 'no-cache'
+          })
+
+          if (!res.ok) {
+            throw new Error(`fetch failed: ${res.status}`)
+          }
+
+          const data: User[] = await res.json()
+          console.log("Fetched users data:", data)
+
+          const list = await Promise.all(
+            data.map(async u => ({ ...u, decryptedPassword: await decryptPassword(u.password) }))
+          )
+
+          setUsers(list)
+          console.log("Users state set to:", list.length, "users")
+        } catch (error) {
+          console.error("Error loading users:", error)
+          toast({ title: 'Error', description: 'Failed to load users' })
+        } finally {
+          setIsLoadingUsers(false)
+        }
       }
     }
+
+    loadData()
   }, [router])
 
-  const getAuthHeaders = () => ({
+  const getAuthHeaders = useCallback(() => ({
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
-  })
+  }), [token])
 
   const decryptPassword = async (encrypted: string) => {
+    // Return early if no encrypted password or empty string
+    if (!encrypted || encrypted.trim() === '') {
+      return encrypted
+    }
+
+    // Check cache first
+    if (decryptionCache.has(encrypted)) {
+      return decryptionCache.get(encrypted)!
+    }
+
     try {
       const res = await fetch('/api/decrypt', {
         method: 'POST',
@@ -125,43 +180,30 @@ export default function AdminDashboard() {
       })
       if (!res.ok) throw new Error('decrypt')
       const data = await res.json()
+
+      // Cache the result
+      setDecryptionCache(prev => new Map(prev).set(encrypted, data.decryptedPassword))
+
       return data.decryptedPassword
-    } catch {
+    } catch (error) {
+      console.error('Decryption failed for:', encrypted, error)
       return encrypted
     }
   }
 
-  const fetchUsers = useCallback(async () => {
-    try {
-      // //console.log("Admin page - Fetching users with token:", token ? "Token present" : "No token")
-      const headers = getAuthHeaders()
-      // //console.log("Admin page - Auth headers:", headers)
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, { headers })
-      // //console.log("Admin page - Users fetch response status:", res.status)
 
-      if (!res.ok) {
-        const errorText = await res.text()
-        console.error("Admin page - Users fetch failed:", errorText)
-        throw new Error(`fetch failed: ${res.status}`)
-      }
 
-      const data: User[] = await res.json()
-      // //console.log("Admin page - Users data received:", data.length, "users")
 
-      const list = await Promise.all(
-        data.map(async u => ({ ...u, decryptedPassword: await decryptPassword(u.password) }))
-      )
-      setUsers(list)
-    } catch (error) {
-      console.error("Admin page - Error fetching users:", error)
-      toast({ title: 'Error', description: 'Failed to load users' })
-    }
-  }, [token, getAuthHeaders, toast])
-
+  // Debug log for users state changes
   useEffect(() => {
-    if (token) fetchUsers()
-  }, [token, fetchUsers])
+    console.log("Users state changed:", users.length, "users") // Debug log
+  }, [users])
+
+  // Debug log for loading state changes
+  useEffect(() => {
+    console.log("Loading state changed:", isLoadingUsers) // Debug log
+  }, [isLoadingUsers])
 
   const [page, setPage] = useState(1)
   const pageSize = 10
@@ -191,6 +233,7 @@ export default function AdminDashboard() {
             page={page}
             pageSize={pageSize}
             onPageChange={setPage}
+            isLoading={isLoadingUsers}
           />
         </div>
       </div>

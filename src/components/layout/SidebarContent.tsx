@@ -36,11 +36,13 @@ interface SidebarContentProps {
   onNewSession: () => void
   chatHistory: HistoryDataItem[]
   onSubjectSelect: (subject: string) => void
+  onTopicSelect?: (topic: string) => void
   currentSubject: string
-  isLoading: boolean
   currentTopic?: string
+  isLoading: boolean
   subjectName?: string
   topicName?: string
+  refreshTrigger?: number
 }
 
 interface UserStreakProps {
@@ -51,17 +53,21 @@ export function SidebarContent({
   onNewSession,
   chatHistory = [],
   onSubjectSelect,
+  onTopicSelect,
   currentSubject,
-  isLoading,
   currentTopic,
+  isLoading,
   subjectName,
-  topicName
+  topicName,
+  refreshTrigger
 }: SidebarContentProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [, setUserStreak] = useState<UserStreakProps | null>(null);
   const [, setIsStreakLoading] = useState(true);
   const [subjectMap, setSubjectMap] = useState<{[key: string]: Subject}>({});
   const [subjectsLoading, setSubjectsLoading] = useState(false);
+  const [recentTopics, setRecentTopics] = useState<string[]>([]);
+  const [topicsLoading, setTopicsLoading] = useState(false);
   const { getAuthHeaders } = useAuth();
   
   // Fetch subjects for mapping IDs to names
@@ -85,6 +91,61 @@ export function SidebarContent({
     fetchSubjects();
   }, []);
 
+  // Fetch recent topics function (supports silent refresh to avoid UI flicker)
+  const fetchRecentTopics = async (silent = false) => {
+    try {
+      if (!silent) setTopicsLoading(true);
+      console.log('[SidebarContent] Fetching recent topics...');
+
+      // Only get explicitly stored recent topics (not auto-extracted ones)
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/chat/recent-topics`,
+        {
+          headers: getAuthHeaders(),
+        }
+      );
+      const responseData = await response.json();
+      const topics = Array.isArray(responseData.data) ? responseData.data : [];
+
+      console.log('[SidebarContent] Recent topics fetched:', topics);
+      setRecentTopics(topics);
+    } catch (error) {
+      console.error('Failed to fetch recent topics:', error);
+      // Do not clear existing list on silent failures to avoid visible flicker
+      if (!silent) setRecentTopics([]);
+    } finally {
+      if (!silent) setTopicsLoading(false);
+    }
+  };
+
+  // Fetch recent topics on mount
+  useEffect(() => {
+    fetchRecentTopics();
+  }, []);
+
+  // Refresh recent topics when currentTopic changes (new topic selected)
+  useEffect(() => {
+    if (currentTopic) {
+      // Silent refresh to avoid flicker
+      const timer = setTimeout(() => {
+        fetchRecentTopics(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentTopic]);
+
+  // Refresh recent topics when refreshTrigger changes (new message sent)
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      console.log('[SidebarContent] Refresh trigger activated:', refreshTrigger, 'refreshing recent topics...');
+      // Add a small delay to ensure the backend has processed the new topic
+      const timer = setTimeout(() => {
+        fetchRecentTopics();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [refreshTrigger]);
+
   const subjects = isLoading || !Array.isArray(chatHistory) ? [] : [...new Set(
     chatHistory.reduce((acc: string[], item) => {
       const itemSubjects = item?.subjects || []
@@ -105,6 +166,13 @@ export function SidebarContent({
 
   const handleNewSession = () => {
     onNewSession();
+    setIsOpen(false);
+  };
+
+  const handleTopicClick = (topic: string) => {
+    if (onTopicSelect) {
+      onTopicSelect(topic);
+    }
     setIsOpen(false);
   };
 
@@ -178,40 +246,56 @@ export function SidebarContent({
       </Button>
 
       <div className="space-y-2">
-        <h2 className="text-sm text-gray-400">Recent Subjects</h2>
+        <h2 className="text-sm text-gray-400">Recent Topics</h2>
         <ScrollArea className="h-[250px] w-full pr-4">
           <div className="space-y-2">
-            {isLoading || subjectsLoading ? (
+            {topicsLoading ? (
               <div className="text-gray-400 text-center py-4">Loading...</div>
-            ) : subjects.length > 0 ? (
-              subjects.map((subject, i) => (
+            ) : recentTopics.length > 0 ? (
+              recentTopics.map((topic, i) => (
                 <Button
                   key={i}
                   variant="ghost"
                   className={`w-full text-[16px] py-2 rounded-full transition-colors ${
-                    currentSubject === subject
+                    currentTopic === topic
                       ? 'bg-[#309CEC] text-[#F9F5FF]'
                       : 'text-[#858585] bg-[#F9F5FF] hover:bg-[#F9F5FF]/70'
                   }`}
-                  onClick={() => handleSubjectClick(subject)}
+                  onClick={() => handleTopicClick(topic)}
                 >
-                  {getSubjectDisplayName(subject)}
+                  {topic}
                 </Button>
               ))
             ) : (
-              <div className="text-gray-400 text-center py-4">No subjects yet</div>
+              <div className="text-gray-400 text-center py-4">No topics yet</div>
             )}
           </div>
         </ScrollArea>
       </div>
 
       <div className="pt-2">
-            <QuizCard
-              currentSubject={currentSubject}
-              currentTopic={currentTopic}
-              subjectName={subjectName}
-              topicName={topicName}
-            />
+            {(() => {
+              // Prefer passing topicId to Quiz page; if we only have name, resolve via subjectMap
+              const subject = subjectMap[currentSubject];
+              const resolvedTopicId = (() => {
+                if (!currentTopic) return '';
+                // If it's already an ObjectId-like string, use as-is
+                const looksLikeId = /^[a-f0-9]{24}$/i.test(currentTopic);
+                if (looksLikeId) return currentTopic;
+                // Try find by name under the current subject
+                const match = subject?.topics?.find(t => t.name === currentTopic);
+                return match?._id || '';
+              })();
+
+              return (
+                <QuizCard
+                  currentSubject={currentSubject}
+                  currentTopic={resolvedTopicId}
+                  subjectName={subjectName}
+                  topicName={topicName}
+                />
+              );
+            })()}
       </div>
     </div>
   );

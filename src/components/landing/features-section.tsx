@@ -1,41 +1,20 @@
+"use client"
+
 import { Check } from "lucide-react"
+import Image from "next/image"
 
 const leftFeatures = [
-  {
-    icon: "💗",
-    text: "Context-Aware Replies",
-  },
-  {
-    icon: "⚡",
-    text: "Instant Responses",
-  },
-  {
-    icon: "🧹",
-    text: "Clean, Distraction-Free Layout",
-  },
-  {
-    icon: "📚",
-    text: "Topic-Based Sessions",
-  },
+  { icon: "💗", text: "Context-Aware Replies" },
+  { icon: "⚡", text: "Instant Responses" },
+  { icon: "🧹", text: "Clean, Distraction-Free Layout" },
+  { icon: "📚", text: "Topic-Based Sessions" },
 ]
 
 const rightFeatures = [
-  {
-    icon: "🛠️",
-    text: "Custom Quiz Builder",
-  },
-  {
-    icon: "🤖",
-    text: "Auto-Generated Quizzes",
-  },
-  {
-    icon: "📊",
-    text: "Performance Insights",
-  },
-  {
-    icon: "👥",
-    text: "Export & Share Results",
-  },
+  { icon: "🛠️", text: "Custom Quiz Builder" },
+  { icon: "🤖", text: "Auto-Generated Quizzes" },
+  { icon: "📊", text: "Performance Insights" },
+  { icon: "👥", text: "Export & Share Results" },
 ]
 
 export function FeaturesSection() {
@@ -43,6 +22,7 @@ export function FeaturesSection() {
     <section className="relative z-10 px-4 sm:px-6 lg:px-8 py-16 bg-gray-50">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
           {/* Left Card - Instant Help */}
           <div className="bg-gradient-to-br from-[#309CEC] to-[#2589d4] rounded-3xl p-8 text-white relative overflow-hidden">
             <div className="relative z-10">
@@ -68,23 +48,16 @@ export function FeaturesSection() {
                 ))}
               </div>
 
-              {/* Dashboard Mockup */}
-              <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm">
-                <div className="aspect-[4/3] bg-white/5 rounded-lg flex items-center justify-center relative">
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <span className="text-2xl">📱</span>
-                    </div>
-                    <p className="text-white/80 text-sm font-medium">Dashboard Interface</p>
-                    <p className="text-white/60 text-xs mt-1">Interactive learning dashboard</p>
-                  </div>
-
-                  {/* Character placeholder */}
-                  <div className="absolute bottom-2 right-2 w-12 h-12 bg-orange-400 rounded-full flex items-center justify-center">
-                    <span className="text-lg">👦</span>
-                  </div>
-                </div>
-              </div>
+              {/* Image with no outer padding */}
+              {/* <div className="rounded-2xl overflow-hidden border border-white/20"> */}
+                <Image
+                  src="/assets/backgrounds/instant-help.png"
+                  alt="Instant Help Dashboard"
+                  width={800}
+                  height={600}
+                  className="w-full h-auto object-cover"
+                />
+              {/* </div> */}
             </div>
           </div>
 
@@ -113,23 +86,16 @@ export function FeaturesSection() {
                 ))}
               </div>
 
-              {/* Quiz Mockup */}
-              <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
-                <div className="aspect-[4/3] bg-white rounded-lg flex items-center justify-center relative border border-gray-100">
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <span className="text-2xl">📝</span>
-                    </div>
-                    <p className="text-gray-700 text-sm font-medium">Quiz Interface</p>
-                    <p className="text-gray-500 text-xs mt-1">Interactive quiz builder</p>
-                  </div>
-
-                  {/* Character placeholder */}
-                  <div className="absolute bottom-2 right-2 w-12 h-12 bg-orange-400 rounded-full flex items-center justify-center">
-                    <span className="text-lg">👦</span>
-                  </div>
-                </div>
-              </div>
+              {/* Image with no outer padding */}
+              {/* <div className="rounded-2xl overflow-hidden border border-gray-200"> */}
+                <Image
+                  src="/assets/backgrounds/quiz.png"
+                  alt="Quiz Interface"
+                  width={800}
+                  height={600}
+                  className="w-full h-auto object-cover"
+                />
+              {/* </div> */}
             </div>
 
             {/* Decorative elements */}

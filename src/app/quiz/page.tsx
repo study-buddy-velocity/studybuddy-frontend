@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { quizApi } from "@/lib/api/quiz"
 import RaiseIssueModal from "@/components/ui/raise-issue-modal"
 
+import { useAuth } from "@/hooks/useAuthenticationHook"
 interface Question {
   id: number
   question: string
@@ -109,9 +110,9 @@ function AlgebraQuizContent() {
 
   const [currentScreen, setCurrentScreen] = useState<"setup" | "quiz" | "results">("setup")
   const [quizSettings, setQuizSettings] = useState<QuizSettings>({
-    difficulty: "",
+    difficulty: "easy",
     numQuestions: 10,
-    questionType: "",
+    questionType: "multiple-choice",
   })
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
@@ -122,24 +123,55 @@ function AlgebraQuizContent() {
 
   // Context from URL parameters
   const [subjectId, setSubjectId] = useState("")
+  const [classId, setClassId] = useState("")
   const [topicId, setTopicId] = useState("")
   const [subjectName, setSubjectName] = useState("")
   const [topicName, setTopicName] = useState("")
   const [loading, setLoading] = useState(false)
   const [showRaiseIssueModal, setShowRaiseIssueModal] = useState(false)
-console.log(loading);
-  // Handle URL parameters
-  useEffect(() => {
-    const subjectFromUrl = searchParams.get('subject')
-    const topicFromUrl = searchParams.get('topic')
-    const subjectNameFromUrl = searchParams.get('subjectName')
-    const topicNameFromUrl = searchParams.get('topicName')
+  const { getAuthHeaders } = useAuth()
 
-    if (subjectFromUrl) setSubjectId(subjectFromUrl)
-    if (topicFromUrl) setTopicId(topicFromUrl)
-    if (subjectNameFromUrl) setSubjectName(decodeURIComponent(subjectNameFromUrl))
-    if (topicNameFromUrl) setTopicName(decodeURIComponent(topicNameFromUrl))
+  // Handle URL parameters (always reset so stale values aren't reused)
+  useEffect(() => {
+    // Support both ...Id and legacy param names from various entry points
+    const subjectFromUrl = searchParams.get('subjectId') || searchParams.get('subject') || ''
+    const topicFromUrl = searchParams.get('topicId') || searchParams.get('topic') || ''
+    const subjectNameFromUrl = searchParams.get('subjectName') || ''
+    const classFromUrl = searchParams.get('classId') || ''
+    const topicNameFromUrl = searchParams.get('topicName') || ''
+
+    setSubjectId(subjectFromUrl)
+    setTopicId(topicFromUrl)
+    if (classFromUrl) setClassId(classFromUrl)
+    setSubjectName(decodeURIComponent(subjectNameFromUrl))
+    setTopicName(decodeURIComponent(topicNameFromUrl))
   }, [searchParams])
+
+  // Load user classId from profile if not already present from URL
+  useEffect(() => {
+    if (classId) return
+    const fetchUserClass = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/user-details`, {
+          headers: getAuthHeaders(),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          // Backend stores class as name (e.g., "6th Standard"); map to ID expected by quiz filters
+          const mapping: Record<string, string> = {
+            '6th Standard': '6th', '7th Standard': '7th', '8th Standard': '8th',
+            '9th Standard': '9th', '10th Standard': '10th', '11th Standard': '11th', '12th Standard': '12th'
+          }
+          const className = (data?.class || '').trim()
+          const classIdVal = mapping[className] || ''
+          if (classIdVal) setClassId(classIdVal)
+        }
+      } catch (e) {
+        console.error('Failed to fetch user details to determine classId', e)
+      }
+    }
+    fetchUserClass()
+  }, [classId, getAuthHeaders])
 
   // Timer effect
   useEffect(() => {
@@ -161,7 +193,11 @@ console.log(loading);
   }
 
   const startQuiz = async () => {
-    if (!quizSettings.difficulty || !quizSettings.questionType) return
+    // Require explicit context so we don't fall back to unrelated questions
+    if (!topicId || !subjectId) {
+      alert('Please start the quiz from a specific topic (subject and topic are required).')
+      return
+    }
 
     try {
       setLoading(true)
@@ -169,52 +205,35 @@ console.log(loading);
       // Try to fetch questions from API
       let apiQuestions: Question[] = []
 
-      // First try with subject and topic if available
-      if (subjectId && topicId) {
-        try {
-          // //console.log('Fetching quizzes for subject:', subjectId, 'topic:', topicId)
-          const quizzes = await quizApi.getAll({
-            subjectId,
-            topicId,
-            noOfQuestions: quizSettings.numQuestions
-          })
+      // Attempt with whatever filters are currently available
+      const filter: { subjectId?: string; topicId?: string; classId?: string; noOfQuestions: number } = {
+        noOfQuestions: quizSettings.numQuestions,
+      }
+      if (subjectId) filter.subjectId = subjectId
+      if (topicId) filter.topicId = topicId
+      if (classId) filter.classId = classId
 
-          if (quizzes && quizzes.length > 0) {
-            // //console.log('Found', quizzes.length, 'API quizzes')
-            apiQuestions = quizzes.map((quiz, index) => ({
-              id: index + 1,
-              question: quiz.question,
-              options: quiz.options.map(opt => opt.text),
-              correctAnswer: quiz.options.findIndex(opt => opt.isCorrect),
-              explanation: quiz.explanation || ""
-            }))
-          }
-        } catch (error) {
-          console.error('Failed to fetch quizzes with subject/topic:', error)
+      try {
+        const quizzes = await quizApi.getAll(filter)
+
+        if (quizzes && quizzes.length > 0) {
+          apiQuestions = quizzes.map((quiz, index) => ({
+            id: index + 1,
+            question: quiz.question,
+            options: quiz.options.map(opt => opt.text),
+            correctAnswer: quiz.options.findIndex(opt => opt.isCorrect),
+            explanation: quiz.explanation || ""
+          }))
         }
+      } catch (error) {
+        console.error('Failed to fetch quizzes with filters:', error)
       }
 
-      // If no questions found with subject/topic, try without filters
+      // If no questions found with filters, show an error
       if (apiQuestions.length === 0) {
-        try {
-          //console.log('Trying to fetch general quizzes')
-          const quizzes = await quizApi.getAll({
-            noOfQuestions: quizSettings.numQuestions
-          })
-
-          if (quizzes && quizzes.length > 0) {
-            //console.log('Found', quizzes.length, 'general API quizzes')
-            apiQuestions = quizzes.map((quiz, index) => ({
-              id: index + 1,
-              question: quiz.question,
-              options: quiz.options.map(opt => opt.text),
-              correctAnswer: quiz.options.findIndex(opt => opt.isCorrect),
-              explanation: quiz.explanation || ""
-            }))
-          }
-        } catch (error) {
-          console.error('Failed to fetch general quizzes, using sample questions:', error)
-        }
+        alert('No questions found for this topic. Please try another topic.')
+        setLoading(false)
+        return
       }
 
       // Use API questions if available, otherwise fall back to sample questions
@@ -291,9 +310,9 @@ console.log(loading);
     setQuizQuestions([])
     setExpandedQuestions([])
     setQuizSettings({
-      difficulty: "",
+      difficulty: "easy",
       numQuestions: 10,
-      questionType: "",
+      questionType: "multiple-choice",
     })
   }
 
@@ -301,7 +320,7 @@ console.log(loading);
     return (
       <div className="min-h-screen bg-white p-4 md:p-8">
         <div
-          className="max-w-4xl mx-auto border-2 rounded-2xl p-6 md:p-8 min-h-[calc(100vh-2rem)]"
+          className="max-w-4xl mx-auto border-2 rounded-2xl p-6 md:p-8 min-h-[100%]"
           style={{ borderColor: "#309CEC" }}
         >
           <div className="flex justify-between items-center mb-12">
@@ -347,23 +366,12 @@ console.log(loading);
                 max="10"
               />
 
-              <Select
-                value={quizSettings.questionType}
-                onValueChange={(value) => setQuizSettings((prev) => ({ ...prev, questionType: value }))}
-              >
-                <SelectTrigger className="h-12 rounded-xl border-gray-200">
-                  <SelectValue placeholder="Choose Question Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="multiple-choice">Multiple Choice</SelectItem>
-                  <SelectItem value="true-false">True/False</SelectItem>
-                  <SelectItem value="mixed">Mixed</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="h-12 rounded-xl border border-gray-200 flex items-center px-4 text-gray-500 bg-gray-50 select-none">
+                Multiple choice
+              </div>
 
               <Button
                 onClick={startQuiz}
-                disabled={!quizSettings.difficulty || !quizSettings.questionType}
                 className="w-full h-12 rounded-xl text-white font-medium"
                 style={{ backgroundColor: "#309CEC" }}
               >
@@ -382,12 +390,12 @@ console.log(loading);
     return (
       <div className="min-h-screen bg-white p-4 md:p-8">
         <div
-          className="max-w-4xl mx-auto border-2 rounded-2xl p-6 md:p-8 min-h-[calc(100vh-2rem)]"
+          className="max-w-4xl mx-auto border-2 rounded-2xl p-6 md:p-8 min-h-[100%]"
           style={{ borderColor: "#309CEC" }}
         >
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-xl font-medium" style={{ color: "#309CEC" }}>
-              Topic: Algebra
+              Topic: {topicName || "Topic"}
             </h1>
             <Button
               variant="outline"
@@ -448,7 +456,7 @@ console.log(loading);
     return (
       <div className="min-h-screen bg-white p-4 md:p-8">
         <div
-          className="max-w-4xl mx-auto border-2 rounded-2xl p-6 md:p-8 min-h-[calc(100vh-2rem)]"
+          className="max-w-4xl mx-auto border-2 rounded-2xl p-6 md:p-8 min-h-[100%]"
           style={{ borderColor: "#309CEC" }}
         >
           <div className="text-center mb-8">

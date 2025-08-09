@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,13 @@ interface Class {
   description?: string
 }
 
+interface Topic {
+  id: string
+  name: string
+  subjectId: string
+  classId?: string
+}
+
 interface AddTopicModalProps {
   isOpen: boolean
   onClose: () => void
@@ -19,6 +26,7 @@ interface AddTopicModalProps {
   subjects: Array<{ id: string; name: string }>
   classes: Class[]
   title?: string
+  editTopic?: Topic | null
 }
 
 export default function AddTopicModal({
@@ -28,10 +36,24 @@ export default function AddTopicModal({
   subjects,
   classes,
   title = "Add Topic",
+  editTopic = null,
 }: AddTopicModalProps) {
   const [name, setName] = useState("")
   const [classId, setClassId] = useState("")
   const [subjectId, setSubjectId] = useState("")
+
+  // Populate form fields when editing
+  useEffect(() => {
+    if (editTopic) {
+      setName(editTopic.name)
+      setSubjectId(editTopic.subjectId)
+      setClassId(editTopic.classId || "")
+    } else {
+      setName("")
+      setClassId("")
+      setSubjectId("")
+    }
+  }, [editTopic, isOpen])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

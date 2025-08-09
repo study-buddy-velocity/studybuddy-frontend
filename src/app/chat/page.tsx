@@ -10,8 +10,6 @@ import {
   HistoryDataItem,
   Query
 } from "@/lib/types/types";
-// import {subjectOptions} from '@/lib/utils'
-// import SubjectDialog from "@/components/ui/subjectSectionDialog";
 import AutoScrollChatArea from "@/components/ui/autoScrollChatArea";
 import { Toaster } from "@/components/ui/toaster";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -21,29 +19,33 @@ function ChatInterfaceContent() {
   const { getAuthHeaders } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [messages, setMessages] = useState<
-    Array<{ content: string; isUser: boolean; lastMessage:boolean }>
-  >([]);
-  const [selectedSubject, setSelectedSubject] = useState("");
-  const [selectedTopic, setSelectedTopic] = useState("");
-  const [subjectName, setSubjectName] = useState("");
-  const [topicName, setTopicName] = useState("");
+  
+  // Simplified state management - one conversation at a time
+  const [currentConversation, setCurrentConversation] = useState<{
+    topicId: string;
+    topicName: string;
+    subjectId: string;
+    subjectName: string;
+    messages: Array<{ content: string; isUser: boolean; lastMessage: boolean }>;
+  } | null>(null);
+  
   const [showDashboard, setShowDashboard] = useState(false);
   const [chatHistory, setChatHistory] = useState<HistoryDataItem[]>([]);
-  const [currentSession, setCurrentSession] = useState<{
-    [key: string]: Query[];
-  }>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const [showRaiseIssueModal, setShowRaiseIssueModal] = useState(false);
+  const [refreshTopics, setRefreshTopics] = useState(0); // Counter to trigger topic refresh
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Function to replace subject IDs with subject names in responses
   const replaceSubjectIdsInResponse = (response: string): string => {
-    if (!subjectName || !selectedSubject) return response;
+    if (!currentConversation?.subjectName || !currentConversation?.subjectId) return response;
+    const subjectIdPattern = new RegExp(currentConversation.subjectId, 'g');
+    return response.replace(subjectIdPattern, currentConversation.subjectName);
+  };
 
-    // Replace subject ID with subject name in the response
-    const subjectIdPattern = new RegExp(selectedSubject, 'g');
-    return response.replace(subjectIdPattern, subjectName);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   const fetchChatHistory = async () => {
@@ -51,32 +53,11 @@ function ChatInterfaceContent() {
       setIsLoading(true);
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/chat/chat-history`,
-        {
-          headers: getAuthHeaders(),
-        }
+        { headers: getAuthHeaders() }
       );
       const responseData: APIResponse = await response.json();
-      const historyData = Array.isArray(responseData.data)
-        ? responseData.data
-        : responseData.data
-        ? [responseData.data]
-        : [];
+      const historyData = Array.isArray(responseData.data) ? responseData.data : [];
       setChatHistory(historyData);
-
-      // Process the history data for the current session
-      const sessionData: { [key: string]: Query[] } = {};
-      historyData.forEach((item: HistoryDataItem) => {
-        item.subjectWise?.forEach((subjectData) => {
-          if (!sessionData[subjectData.subject]) {
-            sessionData[subjectData.subject] = [];
-          }
-          sessionData[subjectData.subject] = [
-            ...sessionData[subjectData.subject],
-            ...subjectData.queries,
-          ];
-        });
-      });
-      setCurrentSession(sessionData);
     } catch (error) {
       console.error("Error fetching chat history:", error);
     } finally {
@@ -84,9 +65,57 @@ function ChatInterfaceContent() {
     }
   };
 
-  useEffect(() => {
-    fetchChatHistory();
-  }, []) // fetchChatHistory is stable, no need to add as dependency;
+  // Load topic conversation from backend
+  const loadTopicConversation = async (topicName: string, topicId: string, subjectId: string, subjectName: string) => {
+    console.log('[loadTopicConversation] Loading:', { topicName, topicId, subjectId, subjectName });
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/chat/topic-history?topic=${encodeURIComponent(topicName)}`,
+        { headers: getAuthHeaders() }
+      );
+      const responseData = await response.json();
+      const historyData = Array.isArray(responseData.data) ? responseData.data : [];
+
+      console.log('[loadTopicConversation] History data:', historyData);
+
+      // Convert history to messages
+      const messages: Array<{ content: string; isUser: boolean; lastMessage: boolean }> = [];
+      
+      historyData.forEach((day: HistoryDataItem) => {
+        day.subjectWise?.forEach((subjectData) => {
+          subjectData.queries.forEach((query) => {
+            messages.push({ content: query.query, isUser: true, lastMessage: false });
+            messages.push({ content: query.response, isUser: false, lastMessage: false });
+          });
+        });
+      });
+
+      // Set current conversation
+      setCurrentConversation({
+        topicId,
+        topicName,
+        subjectId,
+        subjectName,
+        messages
+      });
+
+      console.log('[loadTopicConversation] Loaded', messages.length, 'messages for topic:', topicName);
+    } catch (error) {
+      console.error('[loadTopicConversation] Error:', error);
+      // Start fresh conversation if loading fails
+      setCurrentConversation({
+        topicId,
+        topicName,
+        subjectId,
+        subjectName,
+        messages: []
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Handle subject and topic parameters from URL
   useEffect(() => {
@@ -95,157 +124,122 @@ function ChatInterfaceContent() {
     const subjectNameFromUrl = searchParams.get('subjectName');
     const topicNameFromUrl = searchParams.get('topicName');
 
-    if (subjectFromUrl) {
-      setSelectedSubject(subjectFromUrl);
-      setShowDashboard(false);
-    } else {
-      // Only show dashboard if no subject parameter is present
-      setShowDashboard(true);
-    }
+    console.log('[URL Params]', { subjectFromUrl, topicFromUrl, subjectNameFromUrl, topicNameFromUrl });
 
-    if (topicFromUrl) {
-      setSelectedTopic(topicFromUrl);
-    }
-    if (subjectNameFromUrl) {
-      setSubjectName(decodeURIComponent(subjectNameFromUrl));
-    }
-    if (topicNameFromUrl) {
-      setTopicName(decodeURIComponent(topicNameFromUrl));
+    if (subjectFromUrl && topicFromUrl && topicNameFromUrl) {
+      // Topic-based conversation from dashboard
+      const decodedTopicName = decodeURIComponent(topicNameFromUrl);
+      const decodedSubjectName = subjectNameFromUrl ? decodeURIComponent(subjectNameFromUrl) : '';
+      
+      console.log('[URL] Loading topic conversation:', decodedTopicName);
+      loadTopicConversation(decodedTopicName, topicFromUrl, subjectFromUrl, decodedSubjectName);
+      setShowDashboard(false);
+    } else if (!subjectFromUrl && !topicFromUrl) {
+      // No parameters - show dashboard
+      setShowDashboard(true);
+      setCurrentConversation(null);
     }
   }, [searchParams]);
 
-  // Redirect to dashboard if no subject is selected and we should show dashboard
+  // Redirect to dashboard if no conversation is active
   useEffect(() => {
-    // Add a small delay to ensure URL parameters are processed first
     const timer = setTimeout(() => {
-      if (showDashboard && !selectedSubject && !searchParams.get('subject')) {
+      if (showDashboard && !currentConversation && !searchParams.get('subject')) {
         router.push('/dashboard');
       }
     }, 100);
-
     return () => clearTimeout(timer);
-  }, [showDashboard, selectedSubject, router, searchParams]);
+  }, [showDashboard, currentConversation, router, searchParams]);
 
-  // Rest of the component remains the same...
-  const handleSubjectSelect = (subject: string) => {
-    setSelectedSubject(subject);
-    setShowDashboard(false);
-
-    if (currentSession[subject]) {
-      const subjectMessages = currentSession[subject].flatMap((query) => [
-        { content: query.query, isUser: true, lastMessage: false },
-        { content: query.response, isUser: false, lastMessage: false },
-      ]);
-      setMessages(subjectMessages);
-    } else {
-      setMessages([]);
-    }
+  // Handle topic selection from recent topics
+  const handleTopicSelect = async (topicName: string) => {
+    console.log('[handleTopicSelect] Selected topic:', topicName);
+    await loadTopicConversation(topicName, '', '', '');
   };
 
   const handleNewSession = () => {
-    // Navigate to dashboard instead of showing dialog
     router.push('/dashboard');
   };
 
   const handleSendMessage = async (message: string) => {
-    if (!selectedSubject || !message.trim()) return;
+    if (!currentConversation || !message.trim()) return;
   
-    setMessages((prev) => [...prev, { content: message, isUser: true, lastMessage:false }]);
+    // Add user message to UI
+    setCurrentConversation(prev => prev ? {
+      ...prev,
+      messages: [...prev.messages, { content: message, isUser: true, lastMessage: false }]
+    } : null);
+    
     setIsTyping(true);
   
     try {
-      const topicParam = topicName ? `&topic=${encodeURIComponent(topicName)}` : '';
+      const topicParam = currentConversation.topicName ? `&topic=${encodeURIComponent(currentConversation.topicName)}` : '';
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/chat?subject=${selectedSubject}&query=${encodeURIComponent(message)}${topicParam}`,
-        {
-          headers: getAuthHeaders(),
-        }
+        `${process.env.NEXT_PUBLIC_API_URL}/chat?subject=${currentConversation.subjectId}&query=${encodeURIComponent(message)}${topicParam}`,
+        { headers: getAuthHeaders() }
       );
       const data = await response.json();
 
-      // Replace subject IDs with subject names in the response
       const processedResponse = replaceSubjectIdsInResponse(data.response);
 
-      const newQuery: Query = {
-        query: message,
-        response: processedResponse,
-        tokensUsed: data.tokensUsed || 0,
-        // lastMessage: true,
-        _id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setMessages((prev) => [
+      // Add AI response to UI
+      setCurrentConversation(prev => prev ? {
         ...prev,
-        { content: processedResponse, isUser: false, lastMessage:true },
-      ]);
+        messages: [...prev.messages, { content: processedResponse, isUser: false, lastMessage: true }]
+      } : null);
+
+      // Trigger topic refresh in sidebar after successful message
+      setRefreshTopics(prev => prev + 1);
+
       setIsTyping(false);
-  
-      // Ensure lastMessage is updated only for the latest query
-      setCurrentSession((prev) => {
-        const updatedQueries = [...(prev[selectedSubject] || []), newQuery];
-  
-        return {
-          ...prev,
-          [selectedSubject]: updatedQueries,
-        };
-      });
     } catch (error) {
       console.error("Error sending message:", error);
-      setMessages((prev) => [
+      setCurrentConversation(prev => prev ? {
         ...prev,
-        {
-          content: "Sorry, there was an error processing your request.",
-          isUser: false,
-          lastMessage: false
-        },
-      ]);
-    }
-  };
-  
-
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-
-  // Function to scroll to bottom
-  const scrollToBottom = () => {
-    if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current;
-      scrollContainer.scrollTo({
-        top: scrollContainer.scrollHeight,
-        behavior: "smooth",
-      });
+        messages: [...prev.messages, { 
+          content: "Sorry, there was an error processing your request.", 
+          isUser: false, 
+          lastMessage: false 
+        }]
+      } : null);
+      setIsTyping(false);
     }
   };
 
   // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
-// //console.log(messages,'messages-chat')
+  }, [currentConversation?.messages]);
+
+  useEffect(() => {
+    fetchChatHistory();
+  }, []);
+
   return (
     <div className="flex h-screen p-2 text-black bg-white">
-      {/* Main Layout */}
       <div className="flex w-full gap-2">
         {/* Sidebar */}
         <SidebarContent
           onNewSession={handleNewSession}
           chatHistory={chatHistory}
-          onSubjectSelect={handleSubjectSelect}
-          currentSubject={selectedSubject}
+          onSubjectSelect={() => {}} // Not used in new design
+          onTopicSelect={handleTopicSelect}
+          currentSubject={currentConversation?.subjectId || ""}
+          currentTopic={currentConversation?.topicName || ""}
           isLoading={isLoading}
-          currentTopic={selectedTopic}
-          subjectName={subjectName}
-          topicName={topicName}
+          subjectName={currentConversation?.subjectName || ""}
+          topicName={currentConversation?.topicName || ""}
+          refreshTrigger={refreshTopics}
         />
 
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col bg-white rounded-lg border border-[#309CEC]">
           <ChatHeader
-            subjectName={subjectName}
-            topicName={topicName}
+            subjectName={currentConversation?.subjectName}
+            topicName={currentConversation?.topicName}
             onRaiseIssue={() => setShowRaiseIssueModal(true)}
           />
-          <AutoScrollChatArea messages={messages} isTyping ={isTyping }/>
+          <AutoScrollChatArea messages={currentConversation?.messages || []} isTyping={isTyping} />
           <ChatInput onSendMessage={handleSendMessage} />
         </div>
       </div>
@@ -254,8 +248,8 @@ function ChatInterfaceContent() {
       <RaiseIssueModal
         isOpen={showRaiseIssueModal}
         onClose={() => setShowRaiseIssueModal(false)}
-        currentSubject={subjectName}
-        currentTopic={topicName}
+        currentSubject={currentConversation?.subjectName || ""}
+        currentTopic={currentConversation?.topicName || ""}
       />
 
       <Toaster />

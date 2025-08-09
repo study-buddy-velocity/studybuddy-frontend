@@ -93,6 +93,7 @@ export default function UploadQuestionsModal({
   const downloadTemplate = () => {
     const csvContent = `question,option_a,option_b,option_c,option_d,correct_answer,explanation
 "What is 2+2?","3","4","5","6","B","Basic addition: 2+2=4"
+"Which of the following is the smallest number?","3,402","3,024","3,240","3,204","B","Compare the thousands, hundreds, tens, and units places"
 "What is the capital of France?","London","Berlin","Paris","Madrid","C","Paris is the capital city of France"`
 
     const blob = new Blob([csvContent], { type: "text/csv" })

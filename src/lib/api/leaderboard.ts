@@ -162,7 +162,83 @@ export const getPositionColor = (position: number): string => {
   }
 };
 
-// Subject options for filtering
+// API functions to fetch subjects and classes from backend
+export class SubjectClassAPI {
+  private static getAuthHeaders(): HeadersInit {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+  }
+
+  private static hasValidToken(): boolean {
+    const token = localStorage.getItem('accessToken');
+    return !!token && token.trim() !== '';
+  }
+
+  static async getSubjects(): Promise<string[]> {
+    // Check if user is authenticated
+    if (!this.hasValidToken()) {
+      return [
+        'Mathematics',
+        'Physics',
+        'Chemistry',
+        'Biology',
+        'English',
+        'Computer Science',
+        'Economics',
+        'History',
+        'Geography',
+        'Political Science'
+      ];
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/subjects`, {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch subjects: ${response.statusText}`);
+      }
+
+      const subjects = await response.json();
+      return subjects.map((subject: { name: string }) => subject.name);
+    } catch (error) {
+      console.error('Failed to fetch subjects:', error);
+      // Fallback to default subjects
+      return [
+        'Mathematics',
+        'Physics',
+        'Chemistry',
+        'Biology',
+        'English',
+        'Computer Science',
+        'Economics',
+        'History',
+        'Geography',
+        'Political Science'
+      ];
+    }
+  }
+
+  static getClasses(): string[] {
+    // Classes are predefined (6th-12th standard) as per backend implementation
+    return [
+      '6th Standard',
+      '7th Standard',
+      '8th Standard',
+      '9th Standard',
+      '10th Standard',
+      '11th Standard',
+      '12th Standard'
+    ];
+  }
+}
+
+// Legacy exports for backward compatibility (will be replaced with API calls)
 export const SUBJECT_OPTIONS = [
   'Mathematics',
   'Physics',
@@ -176,12 +252,12 @@ export const SUBJECT_OPTIONS = [
   'Political Science'
 ];
 
-// Class options for filtering
 export const CLASS_OPTIONS = [
-  'Class 9',
-  'Class 10',
-  'Class 11',
-  'Class 12',
-  'PUC 1',
-  'PUC 2'
+  '6th Standard',
+  '7th Standard',
+  '8th Standard',
+  '9th Standard',
+  '10th Standard',
+  '11th Standard',
+  '12th Standard'
 ];

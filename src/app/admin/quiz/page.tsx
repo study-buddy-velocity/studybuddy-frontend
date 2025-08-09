@@ -6,6 +6,7 @@ import TopNav from "@/components/admin/top-nav"
 import AddQuestionModal from "@/components/admin/add-question-modal"
 import UploadQuestionsModal from "@/components/admin/upload-questions-modal"
 import SubjectDropdown from "@/components/admin/subject-dropdown"
+import ClassDropdown from "@/components/admin/class-dropdown"
 import { Trash2, Upload, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import QuestionDetailsModal from "@/components/admin/question-details-modal"
@@ -47,6 +48,7 @@ export default function QuizQuestionsPage() {
   const [isAddQuestionModalOpen, setIsAddQuestionModalOpen] = useState(false)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [selectedSubject, setSelectedSubject] = useState("")
+  const [selectedClass, setSelectedClass] = useState("")
   const [selectedTopic, setSelectedTopic] = useState("")
   const [selectedQuestion, setSelectedQuestion] = useState<LocalQuestion | null>(null)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
@@ -65,10 +67,10 @@ export default function QuizQuestionsPage() {
     loadQuestions()
   }, []) // Functions are stable, no need to add as dependencies
 
-  // Load questions when subject or topic filter changes
+  // Load questions when subject, class, or topic filter changes
   useEffect(() => {
     loadQuestions()
-  }, [selectedSubject, selectedTopic]) // loadQuestions is stable, no need to add as dependency
+  }, [selectedSubject, selectedClass, selectedTopic]) // loadQuestions is stable, no need to add as dependency
 
   const loadSubjects = async () => {
     try {
@@ -116,9 +118,10 @@ export default function QuizQuestionsPage() {
   const loadQuestions = async () => {
     try {
       setLoading(true)
-      const filter: { subjectId?: string; topicId?: string } = {}
+      const filter: { subjectId?: string; topicId?: string; classId?: string } = {}
       if (selectedSubject) filter.subjectId = selectedSubject
       if (selectedTopic) filter.topicId = selectedTopic
+      if (selectedClass) filter.classId = selectedClass
 
       const apiQuestions = await quizApi.getAll(filter)
       const localQuestions: LocalQuestion[] = apiQuestions.map(quiz => ({
@@ -190,11 +193,174 @@ export default function QuizQuestionsPage() {
     }
   }
 
-  const handleUploadQuestions = (data: { file: File; classId: string; subjectId: string; topicId: string }) => {
-    // In a real application, you would parse the CSV file here
-    // //console.log("Uploading file:", data.file.name, "for class:", data.classId, "subject:", data.subjectId, "topic:", data.topicId)
-    // For demo purposes, we'll just show an alert
-    alert(`File "${data.file.name}" uploaded successfully! In a real app, this would parse the CSV and add questions.`)
+  const handleUploadQuestions = async (data: { file: File; classId: string; subjectId: string; topicId: string }) => {
+    setLoading(true);
+    try {
+      // Parse CSV file
+      const csvText = await data.file.text();
+      const lines = csvText.split('\n').filter(line => line.trim() !== '');
+
+      if (lines.length < 2) {
+        alert('CSV file must contain at least a header row and one data row.');
+        return;
+      }
+
+      // Function to parse CSV line properly handling commas within quoted fields
+      const parseCSVLine = (line: string): string[] => {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        result.push(current.trim());
+        return result;
+      };
+
+      // Parse header to understand CSV structure
+      const header = parseCSVLine(lines[0]).map(h => h.replace(/"/g, ''));
+      const expectedHeaders = ['question', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_answer', 'explanation'];
+
+      console.log('Parsed header:', header);
+      console.log('Expected headers:', expectedHeaders);
+
+      // Validate headers
+      const missingHeaders = expectedHeaders.filter(h => !header.includes(h));
+      if (missingHeaders.length > 0) {
+        alert(`CSV file is missing required columns: ${missingHeaders.join(', ')}`);
+        return;
+      }
+
+      // Parse data rows with special handling for numeric values containing commas (e.g. 3,402)
+      const questions = [] as any[]
+      for (let i = 1; i < lines.length; i++) {
+        const rawRow = parseCSVLine(lines[i]).map(cell => cell.replace(/"/g, ''))
+
+        // If the row has more columns than expected, it's likely because a number such as 3,402
+        // was split by the comma thousands-separator. We attempt to intelligently merge such
+        // fragments so that the row aligns again with the expected header count.
+        const row: string[] = []
+        let pointer = 0
+        for (let hIndex = 0; hIndex < expectedHeaders.length; hIndex++) {
+          const headerName = expectedHeaders[hIndex]
+
+          // For option columns we might need to join fragments (e.g. ["3", "402"] -> "3,402")
+          if (headerName.startsWith('option_')) {
+            // Start with the current fragment
+            let value = rawRow[pointer] ?? ''
+            // Merge subsequent purely numeric 3-digit fragments that are likely part of a thousands-separated number
+            while (pointer + 1 < rawRow.length && /^\d{3}$/.test(rawRow[pointer + 1])) {
+              value += `,${rawRow[pointer + 1]}`
+              pointer++
+            }
+            row.push(value.trim())
+            pointer++
+          } else {
+            // Non-option columns – just take the next fragment
+            row.push((rawRow[pointer] ?? '').trim())
+            pointer++
+          }
+        }
+
+        console.log(`Row ${i} parsed + aligned:`, row)
+
+        // If after alignment the row still doesn't have the required number of columns, skip it
+        if (row.length < expectedHeaders.length) {
+          console.log(`Row ${i} skipped: insufficient columns (${row.length} < ${expectedHeaders.length})`);
+          continue;
+        }
+
+        const questionText = row[header.indexOf('question')];
+        const optionA = row[header.indexOf('option_a')];
+        const optionB = row[header.indexOf('option_b')];
+        const optionC = row[header.indexOf('option_c')];
+        const optionD = row[header.indexOf('option_d')];
+        const correctAnswer = row[header.indexOf('correct_answer')].toUpperCase().trim();
+        const explanation = row[header.indexOf('explanation')] || '';
+
+        console.log(`Row ${i} data:`, {
+          question: questionText,
+          optionA, optionB, optionC, optionD,
+          correctAnswer,
+          explanation
+        });
+
+        // Validate required fields
+        if (!questionText || !optionA || !optionB || !optionC || !optionD || !correctAnswer) {
+          console.log(`Row ${i} skipped: missing required fields`);
+          continue;
+        }
+
+        // Validate correct answer
+        if (!['A', 'B', 'C', 'D'].includes(correctAnswer)) {
+          console.log(`Row ${i} skipped: invalid correct answer "${correctAnswer}"`);
+          continue;
+        }
+
+        const questionData = {
+          question: questionText,
+          options: [
+            { text: optionA, isCorrect: correctAnswer === 'A' },
+            { text: optionB, isCorrect: correctAnswer === 'B' },
+            { text: optionC, isCorrect: correctAnswer === 'C' },
+            { text: optionD, isCorrect: correctAnswer === 'D' }
+          ],
+          subjectId: data.subjectId,
+          topicId: data.topicId,
+          classId: data.classId,
+          explanation: explanation,
+          difficulty: 1,
+          type: 'multiple-choice'
+        };
+
+        console.log(`Row ${i} question data:`, questionData);
+        questions.push(questionData);
+      }
+
+      if (questions.length === 0) {
+        alert('No valid questions found in CSV file.');
+        return;
+      }
+
+      // Send to backend
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/quizzes/bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ questions })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        if (result.success) {
+          alert(`Successfully uploaded ${result.created} questions!`);
+        } else {
+          alert(`Uploaded ${result.created} questions with ${result.errors.length} errors:\n${result.errors.slice(0, 5).join('\n')}`);
+        }
+        await loadQuestions(); // Refresh the questions list
+      } else {
+        throw new Error(result.message || 'Failed to upload questions');
+      }
+    } catch (error) {
+      console.error('Failed to upload questions:', error);
+      alert('Failed to upload questions. Please check the CSV format and try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   const handleDeleteQuestion = async (questionId: string) => {
@@ -266,29 +432,45 @@ export default function QuizQuestionsPage() {
 
             {/* Filters */}
             <div className="p-6 border-b border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <SubjectDropdown
-                  subjects={subjects}
-                  selectedSubject={selectedSubject}
-                  onSubjectChange={(subjectId) => {
-                    setSelectedSubject(subjectId)
-                    setSelectedTopic("") // Reset topic when subject changes
-                  }}
-                />
-                <div className="relative">
-                  <select
-                    value={selectedTopic}
-                    onChange={(e) => setSelectedTopic(e.target.value)}
-                    className="w-full px-4 py-3 text-left bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
-                    disabled={!selectedSubject}
-                  >
-                    <option value="">Choose Topic</option>
-                    {filteredTopics.map((topic) => (
-                      <option key={topic.id} value={topic.id}>
-                        {topic.name}
-                      </option>
-                    ))}
-                  </select>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                  <SubjectDropdown
+                    subjects={subjects}
+                    selectedSubject={selectedSubject}
+                    onSubjectChange={(subjectId) => {
+                      setSelectedSubject(subjectId)
+                      setSelectedTopic("") // Reset topic when subject changes
+                    }}
+                    placeholder="All Subjects"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Class</label>
+                  <ClassDropdown
+                    classes={classes}
+                    selectedClass={selectedClass}
+                    onClassChange={setSelectedClass}
+                    placeholder="All Classes"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Topic</label>
+                  <div className="relative">
+                    <select
+                      value={selectedTopic}
+                      onChange={(e) => setSelectedTopic(e.target.value)}
+                      className="w-full px-4 py-3 text-left bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
+                      disabled={!selectedSubject}
+                    >
+                      <option value="">All Topics</option>
+                      {filteredTopics.map((topic) => (
+                        <option key={topic.id} value={topic.id}>
+                          {topic.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>

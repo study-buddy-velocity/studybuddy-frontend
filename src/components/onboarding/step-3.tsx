@@ -27,16 +27,31 @@ export default function OnboardingStep3({ onNext, onPrev, onSkip }: Step3Props) 
         </p>
       </div>
 
-      {/* Main Content - Image */}
+      {/* Main Content - Responsive Images */}
       <div className="w-full max-w-4xl mx-auto mb-8">
-        <Image
-          src="/images/step3-test-knowledge.png"
-          alt="Test Your Knowledge - StudyBuddy Quiz Interface"
-          width={800}
-          height={500}
-          className="w-full h-auto rounded-lg shadow-lg"
-          priority
-        />
+        {/* Desktop Image */}
+        <div className="hidden md:block">
+          <Image
+            src="/assets/backgrounds/intro-3.png"
+            alt="StudyBuddy Dashboard - Desktop View"
+            width={800}
+            height={500}
+            className="w-full h-auto rounded-lg shadow-lg"
+            priority
+          />
+        </div>
+
+        {/* Mobile Image */}
+        <div className="block md:hidden">
+          <Image
+            src="/assets/backgrounds/intro-mob-3.png"
+            alt="StudyBuddy Dashboard - Mobile View"
+            width={300}
+            height={600}
+            className="w-full max-w-sm mx-auto h-auto rounded-lg shadow-lg"
+            priority
+          />
+        </div>
       </div>
 
       {/* Navigation Buttons */}

@@ -8,6 +8,7 @@ import AddSubjectModal from "@/components/admin/add-subject-modal"
 import AddTopicModal from "@/components/admin/add-topic-modal"
 import AddClassModal from "@/components/admin/add-class-modal"
 import SubjectDropdown from "@/components/admin/subject-dropdown"
+import ClassDropdown from "@/components/admin/class-dropdown"
 import { Trash2, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -21,6 +22,7 @@ interface Topic {
   id: string
   name: string
   subjectId: string
+  classId?: string
 }
 
 interface Class {
@@ -34,6 +36,7 @@ export default function SubjectTopicsPage() {
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false)
   const [isClassModalOpen, setIsClassModalOpen] = useState(false)
   const [selectedSubject, setSelectedSubject] = useState("")
+  const [selectedClass, setSelectedClass] = useState("")
 
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [topics, setTopics] = useState<Topic[]>([])
@@ -45,7 +48,13 @@ export default function SubjectTopicsPage() {
   const [editingClass, setEditingClass] = useState<Class | null>(null)
   const { toast } = useToast()
 console.log(loadingSubjects, loadingTopics);
-  const filteredTopics = selectedSubject ? topics.filter((topic) => topic.subjectId === selectedSubject) : topics
+
+  // Enhanced filtering logic for topics by both subject and class
+  const filteredTopics = topics.filter((topic) => {
+    const matchesSubject = selectedSubject ? topic.subjectId === selectedSubject : true;
+    const matchesClass = selectedClass ? topic.classId === selectedClass : true;
+    return matchesSubject && matchesClass;
+  });
 
   const actions = [
   {
@@ -179,10 +188,11 @@ const fetchTopics = async (subjectId: string) => {
     const token = localStorage.getItem("accessToken")
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/subjects/${subjectId}`, {
       headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
     })
     if (!res.ok) throw new Error("Failed to fetch topics")
     const data = await res.json()
-    setTopics((data.topics || []).map((t: { _id?: string; id?: string; name: string }) => ({ id: t._id || t.id || '', name: t.name, subjectId: subjectId })))
+    setTopics((data.topics || []).map((t: { _id?: string; id?: string; name: string; classId?: string }) => ({ id: t._id || t.id || '', name: t.name, subjectId: subjectId, classId: t.classId || '' })))
   } catch {
     toast({ title: "Error", description: "Could not load topics" })
   } finally {
@@ -343,12 +353,6 @@ return (
                   </tbody>
                 </table>
               </div>
-              <SubjectDropdown
-                subjects={subjects}
-                selectedSubject={selectedSubject}
-                onSubjectChange={setSelectedSubject}
-                className="max-w-xs"
-              />
             </div>
 
             {/* Classes Table */}
@@ -395,6 +399,31 @@ return (
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+
+            {/* Filter Dropdowns for Topics */}
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-base font-semibold mb-4">Filter Topics</h3>
+              <div className="flex gap-4 mb-4">
+                <div className="flex-1 max-w-xs">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                  <SubjectDropdown
+                    subjects={subjects}
+                    selectedSubject={selectedSubject}
+                    onSubjectChange={setSelectedSubject}
+                    placeholder="All Subjects"
+                  />
+                </div>
+                <div className="flex-1 max-w-xs">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Class</label>
+                  <ClassDropdown
+                    classes={classes}
+                    selectedClass={selectedClass}
+                    onClassChange={setSelectedClass}
+                    placeholder="All Classes"
+                  />
+                </div>
               </div>
             </div>
 
@@ -449,6 +478,7 @@ return (
   onClose={() => { setIsSubjectModalOpen(false); setEditingSubject(null) }}
   onSubmit={handleAddSubject}
   title={editingSubject ? "Edit Subject" : "Add Subject"}
+  editSubject={editingSubject}
 />
 
       {/* Add Topic Modal */}
@@ -459,6 +489,7 @@ return (
   subjects={subjects}
   classes={classes}
   title={editingTopic ? "Edit Topic" : "Add Topic"}
+  editTopic={editingTopic}
 />
 
       {/* Add Class Modal */}

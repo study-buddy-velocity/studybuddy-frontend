@@ -1,21 +1,39 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+
+interface Subject {
+  id: string
+  name: string
+  description?: string
+}
 
 interface AddSubjectModalProps {
   isOpen: boolean
   onClose: () => void
   onSubmit: (data: { name: string; description?: string }) => void
   title?: string
+  editSubject?: Subject | null
 }
 
-export default function AddSubjectModal({ isOpen, onClose, onSubmit, title = "Add Subject" }: AddSubjectModalProps) {
+export default function AddSubjectModal({ isOpen, onClose, onSubmit, title = "Add Subject", editSubject = null }: AddSubjectModalProps) {
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
+
+  // Populate form fields when editing
+  useEffect(() => {
+    if (editSubject) {
+      setName(editSubject.name)
+      setDescription(editSubject.description || "")
+    } else {
+      setName("")
+      setDescription("")
+    }
+  }, [editSubject, isOpen])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

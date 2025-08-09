@@ -5,7 +5,8 @@ import { getFirstWord, UserData } from "@/lib/utils"
 import { useAuth } from "@/hooks/useAuthenticationHook"
 import ProfileDropdown from "./profileDropdown";
 import { Button } from "@/components/ui/button";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ChevronLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface ChatHeaderProps {
   subjectName?: string;
@@ -24,6 +25,7 @@ export function ChatHeader({ subjectName, topicName, onRaiseIssue }: ChatHeaderP
   });
 
   const { getAuthHeaders } = useAuth();
+  const router = useRouter();
 
   const fetchUserData = async () => {
     try {
@@ -49,7 +51,18 @@ export function ChatHeader({ subjectName, topicName, onRaiseIssue }: ChatHeaderP
 
   return (
     <header className="border-b border-[#C6C6C682] p-4 flex items-center justify-between">
-      <div className="flex items-center gap-3 pl-10">
+      <div className="flex items-center gap-3">
+        {/* Back to Dashboard Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => router.push('/dashboard')}
+          className="flex items-center gap-2 border-[#309CEC] text-[#309CEC] hover:bg-[#309CEC] hover:text-white"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Dashboard
+        </Button>
+
         <Avatar>
           <AvatarImage src='/assets/buddy/Joy-profile-icon.svg' />
           <AvatarFallback>AI</AvatarFallback>

@@ -30,10 +30,11 @@ export function Podium({
   return (
     <div className="bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 rounded-xl p-6 md:p-8 relative overflow-hidden">
       {/* Filter Controls */}
-      <div className="flex flex-wrap gap-3 mb-12 justify-between items-center">
+      <div className="flex flex-wrap gap-2 sm:gap-3 mb-12 justify-center sm:justify-start items-center">
+        {/* Period Filter */}
         <div className="relative">
           <select
-            className="appearance-none bg-white rounded-full px-6 py-3 pr-10 text-sm font-medium text-gray-700 border-0 focus:ring-2 focus:ring-blue-300 cursor-pointer"
+            className="appearance-none bg-white rounded-full px-4 sm:px-6 py-2 sm:py-3 pr-8 sm:pr-10 text-xs sm:text-sm font-medium text-gray-700 border-0 focus:ring-2 focus:ring-blue-300 cursor-pointer"
             value={currentPeriod}
             onChange={(e) => onPeriodChange(e.target.value as 'weekly' | 'monthly' | 'all')}
           >
@@ -41,37 +42,37 @@ export function Podium({
             <option value="monthly">Monthly</option>
             <option value="all">All Time</option>
           </select>
-          <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+          <ChevronDown className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-gray-500 pointer-events-none" />
         </div>
 
-        <div className="flex gap-3">
-          <div className="relative">
-            <select
-              className="appearance-none bg-white rounded-full px-6 py-3 pr-10 text-sm font-medium text-gray-700 border-0 focus:ring-2 focus:ring-blue-300 cursor-pointer"
-              value={currentSubject}
-              onChange={(e) => onSubjectChange(e.target.value)}
-            >
-              <option value="">All Subjects</option>
-              {subjects.map(subject => (
-                <option key={subject} value={subject}>{subject}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
-          </div>
+        {/* Subject Filter - Commented out temporarily */}
+        {/* <div className="relative">
+          <select
+            className="appearance-none bg-white rounded-full px-4 sm:px-6 py-2 sm:py-3 pr-8 sm:pr-10 text-xs sm:text-sm font-medium text-gray-700 border-0 focus:ring-2 focus:ring-blue-300 cursor-pointer"
+            value={currentSubject}
+            onChange={(e) => onSubjectChange(e.target.value)}
+          >
+            <option value="">All Subjects</option>
+            {subjects.map(subject => (
+              <option key={subject} value={subject}>{subject}</option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-gray-500 pointer-events-none" />
+        </div> */}
 
-          <div className="relative">
-            <select
-              className="appearance-none bg-white rounded-full px-6 py-3 pr-10 text-sm font-medium text-gray-700 border-0 focus:ring-2 focus:ring-blue-300 cursor-pointer"
-              value={currentClass}
-              onChange={(e) => onClassChange(e.target.value)}
-            >
-              <option value="">All Classes</option>
-              {classes.map(cls => (
-                <option key={cls} value={cls}>{cls}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
-          </div>
+        {/* Class Filter */}
+        <div className="relative">
+          <select
+            className="appearance-none bg-white rounded-full px-4 sm:px-6 py-2 sm:py-3 pr-8 sm:pr-10 text-xs sm:text-sm font-medium text-gray-700 border-0 focus:ring-2 focus:ring-blue-300 cursor-pointer"
+            value={currentClass}
+            onChange={(e) => onClassChange(e.target.value)}
+          >
+            <option value="">All Classes</option>
+            {classes.map(cls => (
+              <option key={cls} value={cls}>{cls}</option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-gray-500 pointer-events-none" />
         </div>
       </div>
 

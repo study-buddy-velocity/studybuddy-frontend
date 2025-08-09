@@ -1,4 +1,5 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+import { handleAuthRedirect } from '@/lib/handleAuthRedirect';
 
 export interface Subject {
   _id: string;
@@ -52,6 +53,7 @@ export interface UpdateQuizData {
 export interface QuizFilter {
   subjectId?: string;
   topicId?: string;
+  classId?: string;
   noOfQuestions?: number;
 }
 
@@ -93,6 +95,7 @@ export const quizApi = {
     const params = new URLSearchParams();
     if (filter?.subjectId) params.append('subjectId', filter.subjectId);
     if (filter?.topicId) params.append('topicId', filter.topicId);
+    if (filter?.classId) params.append('classId', filter.classId);
     if (filter?.noOfQuestions) params.append('noOfQuestions', filter.noOfQuestions.toString());
 
     const queryString = params.toString() ? `?${params.toString()}` : '';
@@ -101,8 +104,18 @@ export const quizApi = {
     try {
       const userUrl = `${API_BASE_URL}/users/quizzes${queryString}`;
       const userResponse = await fetch(userUrl, {
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(),
+        cache: 'no-store'
       });
+
+      if (userResponse.status === 401 || userResponse.status === 403) {
+        // Handle auth redirect
+        if (typeof window !== 'undefined') {
+          try { localStorage.clear(); } catch {}
+          try { sessionStorage.clear(); } catch {}
+          window.location.href = '/intro'
+        }
+      }
 
       if (userResponse.ok) {
         return userResponse.json();
@@ -116,8 +129,17 @@ export const quizApi = {
     try {
       const adminUrl = `${API_BASE_URL}/admin/quizzes${queryString}`;
       const adminResponse = await fetch(adminUrl, {
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(),
+        cache: 'no-store'
       });
+
+      if (adminResponse.status === 401 || adminResponse.status === 403) {
+        if (typeof window !== 'undefined') {
+          try { localStorage.clear(); } catch {}
+          try { sessionStorage.clear(); } catch {}
+          window.location.href = '/intro'
+        }
+      }
 
       if (adminResponse.ok) {
         return adminResponse.json();

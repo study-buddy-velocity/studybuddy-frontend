@@ -31,7 +31,7 @@ export default function OnboardingStep1({ onNext, onSkip }: Step1Props) {
         {/* Desktop Image */}
         <div className="hidden md:block">
           <Image
-            src="/images/desktop-dashboard.png"
+            src="/assets/backgrounds/intro-1.png"
             alt="StudyBuddy Dashboard - Desktop View"
             width={800}
             height={500}
@@ -43,7 +43,7 @@ export default function OnboardingStep1({ onNext, onSkip }: Step1Props) {
         {/* Mobile Image */}
         <div className="block md:hidden">
           <Image
-            src="/images/mobile-dashboard.png"
+            src="/assets/backgrounds/intro-mob-1.png"
             alt="StudyBuddy Dashboard - Mobile View"
             width={300}
             height={600}

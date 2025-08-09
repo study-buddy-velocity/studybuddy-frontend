@@ -6,6 +6,8 @@ export type Query = {
     _id: string;
     createdAt: string;
     updatedAt: string;
+    topic?: string;
+    summary?: string;
   };
   
   export type SubjectData = {
