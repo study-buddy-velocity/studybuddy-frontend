@@ -308,9 +308,9 @@ export function SidebarContent({
           <SheetTrigger asChild>
             <Button
               variant="ghost"
-              className="fixed top-4 left-4 z-50 w-16 h-16 p-0 hover:bg-[#4024B9]/10"
+              className="fixed top-20 left-4 z-40 w-12 h-12 p-0 hover:bg-[#4024B9]/10"
             >
-              <Menu className="h-8 w-8" />
+              <Menu className="h-7 w-7" />
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-80 bg-white border-r border-[#309CEC] p-4">

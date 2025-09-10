@@ -1,3 +1,4 @@
+
 'use client';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useEffect, useState } from "react"
@@ -43,58 +44,65 @@ export function ChatHeader({ subjectName, topicName, onRaiseIssue }: ChatHeaderP
     } catch (error) {
       console.error('Error fetching user data:', error);
     }
-  }; // Add dependencies here
+  };
 
   useEffect(() => {
     fetchUserData();
-  }, []) // fetchUserData is stable, no need to add as dependency; // Now fetchUserData is stable and won't cause unnecessary re-renders
+  }, []);
 
   return (
-    <header className="border-b border-[#C6C6C682] p-4 flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        {/* Back to Dashboard Button */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => router.push('/dashboard')}
-          className="flex items-center gap-2 border-[#309CEC] text-[#309CEC] hover:bg-[#309CEC] hover:text-white"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Dashboard
-        </Button>
+<header className="border-b border-[#C6C6C682] p-3 sm:p-4 flex items-center justify-between">
+  {/* Left Section */}
+  <div className="flex items-center gap-2 sm:gap-3">
+    {/* Back Button */}
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => router.push('/dashboard')}
+      className="h-8 w-8 text-[#309CEC] hover:bg-[#309CEC]/10"
+    >
+      <ChevronLeft className="w-5 h-5" />
+    </Button>
 
-        <Avatar>
-          <AvatarImage src='/assets/buddy/Joy-profile-icon.svg' />
-          <AvatarFallback>AI</AvatarFallback>
-        </Avatar>
-        <div>
-          {subjectName && topicName ? (
-            <>
-              <p className="font-medium">{subjectName}</p>
-              <p className="text-sm text-[#309CEC]">{topicName}</p>
-            </>
-          ) : (
-            <>
-              <p>How are you doing</p>
-              <p className="text-sm text-[#309CEC]">{getFirstWord(userData?.name)}<span className="text-white">?</span></p>
-            </>
-          )}
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        {onRaiseIssue && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRaiseIssue}
-            className="flex items-center gap-2"
-          >
-            <AlertCircle className="w-4 h-4" />
-            Raise Issue
-          </Button>
+    {/* Avatar + Subject */}
+    <div className="flex items-center gap-2">
+      <Avatar className="w-9 h-9 sm:w-10 sm:h-10">
+        <AvatarImage src='/assets/buddy/Joy-profile-icon.svg' />
+        <AvatarFallback>AI</AvatarFallback>
+      </Avatar>
+      <div className="leading-tight">
+        {subjectName && topicName ? (
+          <>
+            <p className="font-medium text-sm sm:text-base">{subjectName}</p>
+            <p className="text-xs sm:text-sm text-[#309CEC]">{topicName}</p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm sm:text-base">How are you doing</p>
+            <p className="text-xs sm:text-sm text-[#309CEC]">
+              {getFirstWord(userData?.name)}<span className="text-white">?</span>
+            </p>
+          </>
         )}
-        <ProfileDropdown userName={userData?.name} />
       </div>
-    </header>
+    </div>
+  </div>
+
+  {/* Right Section */}
+  <div className="flex items-center gap-2">
+    {onRaiseIssue && (
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onRaiseIssue}
+        className="h-8 w-8 text-[#309CEC] hover:bg-[#309CEC]/10"
+      >
+        <AlertCircle className="w-5 h-5" />
+      </Button>
+    )}
+    <ProfileDropdown userName={userData?.name} />
+  </div>
+</header>
+
   );
 }
