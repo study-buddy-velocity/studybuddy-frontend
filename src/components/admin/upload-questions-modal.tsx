@@ -14,6 +14,7 @@ interface Topic {
   id: string
   name: string
   subjectId: string
+  classId?: string
 }
 
 interface Class {
@@ -47,7 +48,7 @@ export default function UploadQuestionsModal({
   const [topicId, setTopicId] = useState("")
   const [dragActive, setDragActive] = useState(false)
 
-  const filteredTopics = topics.filter((topic) => topic.subjectId === subjectId)
+  const filteredTopics = topics.filter((topic) => topic.subjectId === subjectId && (!classId || !topic.classId || topic.classId === classId))
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()

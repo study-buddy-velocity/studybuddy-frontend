@@ -2,6 +2,10 @@
 
 import { X, Edit } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import ReactMarkdown from "react-markdown"
+import remarkMath from "remark-math"
+import rehypeKatex from "rehype-katex"
+import "katex/dist/katex.min.css"
 
 interface Question {
   id: string
@@ -27,6 +31,8 @@ interface Topic {
   subjectId: string
 }
 
+interface ClassItem { id: string; name: string }
+
 interface QuestionDetailsModalProps {
   isOpen: boolean
   onClose: () => void
@@ -34,6 +40,7 @@ interface QuestionDetailsModalProps {
   question: Question | null
   subjects: Subject[]
   topics: Topic[]
+  classes?: ClassItem[]
 }
 
 export default function QuestionDetailsModal({
@@ -43,12 +50,14 @@ export default function QuestionDetailsModal({
   question,
   subjects,
   topics,
+  classes = []
 }: QuestionDetailsModalProps) {
   if (!isOpen || !question) return null
 
   const subject = subjects.find((s) => s.id === question.subjectId)
   const topic = topics.find((t) => t.id === question.topicId)
   const correctOption = question.options.find((option) => option.isCorrect)
+  const className = classes.find(c => (c as any).id === (question as any).classId)?.name || (question as any).classId || "Not specified"
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -72,8 +81,8 @@ export default function QuestionDetailsModal({
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Subject and Topic */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Subject, Topic, Class */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
               <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md">
@@ -86,13 +95,21 @@ export default function QuestionDetailsModal({
                 <span className="text-sm text-gray-900">{topic?.name || "Unknown Topic"}</span>
               </div>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Class</label>
+              <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md">
+                <span className="text-sm text-gray-900">{className}</span>
+              </div>
+            </div>
           </div>
 
           {/* Question */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Question</label>
-            <div className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-md">
-              <p className="text-gray-900">{question.question}</p>
+            <div className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-md prose max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                {question.question}
+              </ReactMarkdown>
             </div>
           </div>
 
@@ -117,7 +134,9 @@ export default function QuestionDetailsModal({
                     </div>
                     <span className="text-sm font-medium text-gray-600">{String.fromCharCode(65 + index)}.</span>
                     <span className={`text-sm ${option.isCorrect ? "text-green-800 font-medium" : "text-gray-900"}`}>
-                      {option.text}
+                      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                        {option.text}
+                      </ReactMarkdown>
                     </span>
                   </div>
                   {option.isCorrect && (
@@ -147,8 +166,10 @@ export default function QuestionDetailsModal({
           {question.explanation && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Explanation</label>
-              <div className="px-4 py-3 bg-blue-50 border border-blue-200 rounded-md">
-                <p className="text-sm text-blue-900">{question.explanation}</p>
+              <div className="px-4 py-3 bg-blue-50 border border-blue-200 rounded-md prose max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                  {question.explanation}
+                </ReactMarkdown>
               </div>
             </div>
           )}

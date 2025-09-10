@@ -11,6 +11,10 @@ import { Trash2, Upload, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import QuestionDetailsModal from "@/components/admin/question-details-modal"
 import { subjectApi, quizApi, CreateQuizData } from "@/lib/api/quiz"
+import ReactMarkdown from "react-markdown"
+import remarkMath from "remark-math"
+import rehypeKatex from "rehype-katex"
+import "katex/dist/katex.min.css"
 
 // Map API types to local types for compatibility with existing components
 interface LocalSubject {
@@ -23,6 +27,7 @@ interface LocalTopic {
   id: string
   name: string
   subjectId: string
+  classId?: string
 }
 
 interface LocalClass {
@@ -36,6 +41,7 @@ interface LocalQuestion {
   question: string
   subjectId: string
   topicId: string
+  classId?: string
   options: Array<{
     id: string
     text: string
@@ -90,7 +96,8 @@ export default function QuizQuestionsPage() {
           allTopics.push({
             id: topic._id,
             name: topic.name,
-            subjectId: subject._id
+            subjectId: subject._id,
+            classId: (topic as any).classId
           })
         })
       })
@@ -129,6 +136,7 @@ export default function QuizQuestionsPage() {
         question: quiz.question,
         subjectId: quiz.subjectId,
         topicId: quiz.topicId,
+        classId: (quiz as any).classId,
         options: quiz.options.map((option, index) => ({
           id: index.toString(),
           text: option.text,
@@ -144,7 +152,9 @@ export default function QuizQuestionsPage() {
     }
   }
 
-  const filteredTopics = selectedSubject ? topics.filter((topic) => topic.subjectId === selectedSubject) : topics
+  const filteredTopics = selectedSubject
+  ? topics.filter((topic) => topic.subjectId === selectedSubject && (!selectedClass || !topic.classId || topic.classId === selectedClass))
+  : topics
 
   const filteredQuestions = questions.filter((question) => {
     if (selectedSubject && question.subjectId !== selectedSubject) return false
@@ -171,7 +181,8 @@ export default function QuizQuestionsPage() {
           text: option.text,
           isCorrect: option.isCorrect
         })),
-        explanation: data.explanation
+        explanation: data.explanation,
+        classId: data.classId
       }
 
       if (editingQuestion) {
@@ -198,7 +209,7 @@ export default function QuizQuestionsPage() {
     try {
       // Parse CSV file
       const csvText = await data.file.text();
-      const lines = csvText.split('\n').filter(line => line.trim() !== '');
+      const lines = csvText.replace(/\r/g, '').split('\n').filter(line => line.trim() !== '');
 
       if (lines.length < 2) {
         alert('CSV file must contain at least a header row and one data row.');
@@ -228,7 +239,12 @@ export default function QuizQuestionsPage() {
       };
 
       // Parse header to understand CSV structure
-      const header = parseCSVLine(lines[0]).map(h => h.replace(/"/g, ''));
+      // Normalize headers for robustness (trim, remove quotes, lowercase)
+      let header = parseCSVLine(lines[0]).map(h => h.replace(/"/g, '').trim());
+      if (header.length && header[0].charCodeAt(0) === 0xFEFF) {
+        header[0] = header[0].slice(1);
+      }
+      header = header.map(h => h.toLowerCase());
       const expectedHeaders = ['question', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_answer', 'explanation'];
 
       console.log('Parsed header:', header);
@@ -496,8 +512,10 @@ export default function QuizQuestionsPage() {
                       key={question.id}
                       className={`${index % 2 === 0 ? "bg-row-light" : "bg-white"} hover:bg-blue-50 cursor-pointer transition-colors`}
                     >
-                      <td className="px-6 py-4 text-sm text-gray-900" onClick={() => handleQuestionClick(question)}>
-                        {question.question}
+                      <td className="px-6 py-4 text-sm text-gray-900 prose max-w-none" onClick={() => handleQuestionClick(question)}>
+                        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                          {question.question}
+                        </ReactMarkdown>
                       </td>
                       <td className="px-6 py-4">
                         <button
@@ -563,6 +581,7 @@ export default function QuizQuestionsPage() {
         question={selectedQuestion}
         subjects={subjects}
         topics={topics}
+        classes={classes}
       />
     </div>
   )

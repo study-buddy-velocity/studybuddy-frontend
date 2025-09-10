@@ -12,6 +12,7 @@ export interface Topic {
   _id: string;
   name: string;
   description?: string;
+  classId?: string;
 }
 
 export interface QuizOption {
@@ -28,6 +29,7 @@ export interface Quiz {
   type?: string;
   difficulty?: number;
   explanation?: string;
+  classId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -40,6 +42,7 @@ export interface CreateQuizData {
   type?: string;
   difficulty?: number;
   explanation?: string;
+  classId?: string;
 }
 
 export interface UpdateQuizData {
@@ -48,6 +51,7 @@ export interface UpdateQuizData {
   type?: string;
   difficulty?: number;
   explanation?: string;
+  classId?: string;
 }
 
 export interface QuizFilter {
@@ -69,23 +73,44 @@ const getAuthHeaders = () => {
 // Subject API functions
 export const subjectApi = {
   getAll: async (): Promise<Subject[]> => {
-    const response = await fetch(`${API_BASE_URL}/users/subjects`, {
+    // Try user endpoint first (filters topics by user class), then fallback to admin for full data
+    try {
+      const userResponse = await fetch(`${API_BASE_URL}/users/subjects`, {
+        headers: getAuthHeaders()
+      });
+      if (userResponse.ok) {
+        return userResponse.json();
+      }
+    } catch (e) {
+      console.warn('User subjects endpoint not available, trying admin subjects');
+    }
+
+    const adminResponse = await fetch(`${API_BASE_URL}/admin/subjects`, {
       headers: getAuthHeaders()
     });
-    if (!response.ok) {
+    if (!adminResponse.ok) {
       throw new Error('Failed to fetch subjects');
     }
-    return response.json();
+    return adminResponse.json();
   },
 
   getById: async (id: string): Promise<Subject> => {
-    const response = await fetch(`${API_BASE_URL}/users/subjects/${id}`, {
+    try {
+      const userResponse = await fetch(`${API_BASE_URL}/users/subjects/${id}`, {
+        headers: getAuthHeaders()
+      });
+      if (userResponse.ok) {
+        return userResponse.json();
+      }
+    } catch {}
+
+    const adminResponse = await fetch(`${API_BASE_URL}/admin/subjects/${id}`, {
       headers: getAuthHeaders()
     });
-    if (!response.ok) {
+    if (!adminResponse.ok) {
       throw new Error('Failed to fetch subject');
     }
-    return response.json();
+    return adminResponse.json();
   }
 };
 

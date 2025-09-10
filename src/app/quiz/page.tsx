@@ -9,6 +9,10 @@ import { ChevronDown, ChevronUp, Star } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { quizApi } from "@/lib/api/quiz"
 import RaiseIssueModal from "@/components/ui/raise-issue-modal"
+import ReactMarkdown from "react-markdown"
+import remarkMath from "remark-math"
+import rehypeKatex from "rehype-katex"
+import "katex/dist/katex.min.css"
 
 import { useAuth } from "@/hooks/useAuthenticationHook"
 interface Question {
@@ -17,6 +21,7 @@ interface Question {
   options: string[]
   correctAnswer: number
   explanation: string
+  quizId?: string
 }
 
 interface QuizSettings {
@@ -222,7 +227,8 @@ function AlgebraQuizContent() {
             question: quiz.question,
             options: quiz.options.map(opt => opt.text),
             correctAnswer: quiz.options.findIndex(opt => opt.isCorrect),
-            explanation: quiz.explanation || ""
+            explanation: quiz.explanation || "",
+            quizId: quiz._id
           }))
         }
       } catch (error) {
@@ -278,8 +284,32 @@ function AlgebraQuizContent() {
     }
   }
 
-  const handleFinishQuiz = () => {
+  const handleFinishQuiz = async () => {
     setCurrentScreen("results")
+
+    try {
+      // Build attempt payload only if we have quiz IDs
+      const answers = userAnswers.map((ua, idx) => ({
+        quizId: quizQuestions[idx]?.quizId || '',
+        selectedAnswer: ua.selectedAnswer,
+      })).filter(a => a.quizId)
+
+      if (answers.length > 0 && subjectId && topicId) {
+        const totalTime = (quizSettings.numQuestions * 30) - timeRemaining
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/quiz-attempts`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            subjectId,
+            topicId,
+            answers,
+            totalTimeSpent: totalTime > 0 ? totalTime : undefined,
+          })
+        })
+      }
+    } catch (e) {
+      console.error('Failed to record quiz attempt', e)
+    }
   }
 
   const getScore = () => {
@@ -410,7 +440,11 @@ function AlgebraQuizContent() {
             <p className="text-gray-600 mb-4">
               Question {currentQuestionIndex + 1} of {quizQuestions.length}
             </p>
-            <h2 className="text-xl font-semibold text-gray-900 mb-8">{currentQuestion.question}</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-8">
+              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                {currentQuestion.question}
+              </ReactMarkdown>
+            </h2>
 
             <div className="space-y-3 mb-8 max-w-md mx-auto">
               {currentQuestion.options.map((option, index) => (
@@ -428,7 +462,11 @@ function AlgebraQuizContent() {
                   >
                     {selectedAnswer === index && <div className="w-3 h-3 bg-white rounded-full" />}
                   </div>
-                  <span className="text-lg font-medium text-gray-900">{option}</span>
+                  <span className="text-lg font-medium text-gray-900">
+                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                      {option}
+                    </ReactMarkdown>
+                  </span>
                 </div>
               ))}
             </div>
@@ -500,7 +538,11 @@ function AlgebraQuizContent() {
                     className="w-full p-4 text-left border border-gray-200 rounded-lg hover:bg-gray-50 flex justify-between items-center"
                     onClick={() => toggleQuestionExpansion(question.id)}
                   >
-                    <span className="font-medium">{question.question}</span>
+                    <span className="font-medium">
+                          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                            {question.question}
+                          </ReactMarkdown>
+                        </span>
                     {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                   </CollapsibleTrigger>
                   <CollapsibleContent className="border-x border-b border-gray-200 rounded-b-lg p-4 bg-blue-50">
@@ -509,9 +551,13 @@ function AlgebraQuizContent() {
                         The Correct Answer Is: {question.options[question.correctAnswer]}
                       </p>
                       {!wasCorrect && (
-                        <p className="text-red-600">
-                          Your Answer: {userAnswer ? question.options[userAnswer.selectedAnswer] : "No answer"}
-                        </p>
+                        <div className="text-red-600">
+                          Your Answer: {userAnswer ? (
+                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                              {question.options[userAnswer.selectedAnswer]}
+                            </ReactMarkdown>
+                          ) : "No answer"}
+                        </div>
                       )}
                       <div className="flex items-start space-x-2">
                         <Star className="w-4 h-4 mt-0.5" style={{ color: "#309CEC" }} />
@@ -519,7 +565,11 @@ function AlgebraQuizContent() {
                           <p className="font-medium" style={{ color: "#309CEC" }}>
                             Why?
                           </p>
-                          <p className="text-gray-700">{question.explanation}</p>
+                          <div className="text-gray-700 prose max-w-none">
+                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                              {question.explanation}
+                            </ReactMarkdown>
+                          </div>
                         </div>
                       </div>
                     </div>

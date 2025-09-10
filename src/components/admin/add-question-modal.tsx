@@ -15,6 +15,7 @@ interface Topic {
   id: string
   name: string
   subjectId: string
+  classId?: string
 }
 
 interface Class {
@@ -34,6 +35,7 @@ interface Question {
   question: string
   subjectId: string
   topicId: string
+  classId?: string
   options: Array<{
     id: string
     text: string
@@ -85,7 +87,7 @@ export default function AddQuestionModal({
   useEffect(() => {
     if (editQuestion) {
       setQuestion(editQuestion.question)
-      setClassId("") // Will need to be set based on question data if available
+      setClassId(editQuestion.classId || "")
       setSubjectId(editQuestion.subjectId)
       setTopicId(editQuestion.topicId)
       setExplanation(editQuestion.explanation || "")
@@ -106,7 +108,7 @@ export default function AddQuestionModal({
     }
   }, [editQuestion, isOpen])
 
-  const filteredTopics = topics.filter((topic) => topic.subjectId === subjectId)
+  const filteredTopics = topics.filter((topic) => topic.subjectId === subjectId && (!classId || !topic.classId || topic.classId === classId))
 
   const addOption = () => {
     const newOption: Option = {
