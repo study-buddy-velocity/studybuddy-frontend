@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react"
+import Link from "next/link"
 import { useRef } from "react"
 
 const scoreCards = [
@@ -106,10 +107,12 @@ export function SmartRecommendationsSection() {
           </div>
 
           <div className="hidden lg:block">
+            <Link href="/intro">
             <Button className="bg-[#309CEC] hover:bg-[#2589d4] text-white px-6 py-3 text-base font-medium rounded-full">
               Start Learning
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
+            </Link>
           </div>
         </div>
 

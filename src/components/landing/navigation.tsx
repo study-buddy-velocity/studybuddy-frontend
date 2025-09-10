@@ -18,10 +18,13 @@ export function Navigation() {
       <nav className="hidden lg:flex items-center justify-between max-w-6xl mx-auto">
         {/* Left Navigation */}
         <div className="flex items-center space-x-8">
-          <button className="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors">
+          <button
+  onClick={() => {
+    document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
+  }}  className="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors">
             Contact Us
           </button>
-          <button className="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors">Get Help</button>
+          {/* <button className="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors">Get Help</button> */}
         </div>
 
         {/* Center Logo */}
@@ -33,7 +36,9 @@ export function Navigation() {
 
         {/* Right Navigation */}
         <div className="flex items-center space-x-8">
-          <button className="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors">Features</button>
+          <button onClick={() => {
+    document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
+  }}  className="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors">Features</button>
           <Link href="/intro"><Button className="bg-[#309CEC] hover:bg-[#2589d4] text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
             Start Learning
             <ArrowRight className="ml-2 h-4 w-4" />
@@ -84,19 +89,31 @@ export function Navigation() {
                 <div className="space-y-6">
                   <button
                     className="block w-full text-left text-lg font-medium text-gray-900 hover:text-[#309CEC] transition-colors py-3"
-                    onClick={toggleMobileMenu}
+                        onClick={() => {
+      toggleMobileMenu();
+      const element = document.getElementById("contact");
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    }}
                   >
                     Contact Us
                   </button>
-                  <button
+                  {/* <button
                     className="block w-full text-left text-lg font-medium text-gray-900 hover:text-[#309CEC] transition-colors py-3"
                     onClick={toggleMobileMenu}
                   >
                     Get Help
-                  </button>
+                  </button> */}
                   <button
                     className="block w-full text-left text-lg font-medium text-gray-900 hover:text-[#309CEC] transition-colors py-3"
-                    onClick={toggleMobileMenu}
+                        onClick={() => {
+      toggleMobileMenu();
+      const element = document.getElementById("features");
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    }}
                   >
                     Features
                   </button>

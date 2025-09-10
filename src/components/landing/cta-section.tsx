@@ -5,8 +5,12 @@ import type React from "react"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Phone } from "lucide-react"
 import { useState } from "react"
+import Link from "next/link"
+interface CTASectionProps {
+  id?: string;
+}
 
-export function CTASection() {
+export function CTASection({id}:CTASectionProps) {
   const [formData, setFormData] = useState({
     name: "",
     message: "",
@@ -28,7 +32,7 @@ export function CTASection() {
   }
 
   return (
-    <section className="relative z-10 px-4 sm:px-6 lg:px-8 py-16 bg-gradient-to-br from-pink-50 via-orange-50 to-yellow-50 overflow-hidden">
+    <section id = {id} className="relative z-10 px-4 sm:px-6 lg:px-8 py-16 bg-gradient-to-br from-pink-50 via-orange-50 to-yellow-50 overflow-hidden">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Card - Ready to Study Smarter */}
@@ -45,11 +49,13 @@ export function CTASection() {
               <p className="text-blue-100 text-lg mb-8 leading-relaxed max-w-sm">
                 Sign up free and start learning in minutes. No credit card needed.
               </p>
-
+<Link href="/intro">
               <Button className="bg-white text-[#309CEC] hover:bg-gray-100 px-8 py-3 text-base font-medium rounded-full">
                 Start Learning
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
+              </Link>
+
 
               {/* 3D Character Placeholder */}
               <div className="absolute bottom-0 right-0 w-40 h-40 flex items-end justify-end">
@@ -117,7 +123,7 @@ export function CTASection() {
                   type="submit"
                   className="w-full bg-[#309CEC] hover:bg-[#2589d4] text-white py-3 text-base font-medium rounded-lg"
                 >
-                  Log In
+                  Submit
                 </Button>
               </form>
             </div>

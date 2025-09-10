@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
 
 export function LeaderboardSection() {
   return (
@@ -24,11 +25,13 @@ export function LeaderboardSection() {
             <p className="text-blue-100 text-lg mb-8 leading-relaxed max-w-md">
               Challenge friends and track your rank by subject or class. Stay motivated with weekly goals.
             </p>
-
+<Link href="/intro">
             <Button className="bg-white text-[#309CEC] hover:bg-gray-100 px-8 py-3 text-base font-medium rounded-full">
               Start Learning
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
+</Link>
+
           </div>
 
           {/* Right Content - Leaderboard Image */}

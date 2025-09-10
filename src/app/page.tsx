@@ -46,7 +46,7 @@ export default function StudyBuddyLanding() {
       <StudySmarterSection />
 
       {/* Features Section */}
-      <FeaturesSection />
+      <FeaturesSection id="features" />
 
       {/* Smart Recommendations Section */}
       <SmartRecommendationsSection />
@@ -55,13 +55,13 @@ export default function StudyBuddyLanding() {
       <LeaderboardSection />
 
       {/* CTA Section */}
-      <CTASection />
+      <CTASection id="contact" />
 
       {/* Footer */}
       <Footer />
 
       {/* Mobile Menu Button */}
-      <MobileMenuButton />
+      {/* <MobileMenuButton /> */}
     </div>
   )
 }

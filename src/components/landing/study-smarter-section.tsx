@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
 import { SubjectCard } from "./subject-card"
+import Link from "next/link"
 
 const subjects = [
   {
@@ -61,10 +62,13 @@ export function StudySmarterSection() {
 
         {/* Start Learning Button */}
         <div className="text-center">
-          <Button className="bg-[#309CEC] hover:bg-[#2589d4] text-white px-8 py-3 text-base font-medium rounded-full">
+          <Link href="/intro">
+                    <Button className="bg-[#309CEC] hover:bg-[#2589d4] text-white px-8 py-3 text-base font-medium rounded-full">
             Start Learning
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
+          </Link>
+
         </div>
       </div>
     </section>
