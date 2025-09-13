@@ -46,11 +46,11 @@ export default function QuizCard({
             </div>
           </div>
 
-          <div className="space-y-1">
+          {/* <div className="space-y-1">
             <h2 className="text-base font-semibold" style={{ color: "#309CEC" }}>
               Take a Quiz to Test your Knowledge
             </h2>
-          </div>
+          </div> */}
 
           <Button
             className="w-full text-white font-medium py-1.5 px-4 rounded-md text-sm hover:opacity-90 transition-opacity"

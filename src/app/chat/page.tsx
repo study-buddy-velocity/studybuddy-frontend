@@ -7,8 +7,7 @@ import { SidebarContent } from "@/components/layout/SidebarContent";
 import { useAuth } from "@/hooks/useAuthenticationHook";
 import {
   APIResponse,
-  HistoryDataItem,
-  Query
+  HistoryDataItem
 } from "@/lib/types/types";
 import AutoScrollChatArea from "@/components/ui/autoScrollChatArea";
 import { Toaster } from "@/components/ui/toaster";
@@ -36,12 +35,27 @@ function ChatInterfaceContent() {
   const [showRaiseIssueModal, setShowRaiseIssueModal] = useState(false);
   const [refreshTopics, setRefreshTopics] = useState(0); // Counter to trigger topic refresh
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Opener provided by SidebarContent so ChatHeader can open it via hamburger
+  const [openSidebar, setOpenSidebar] = useState<(() => void) | null>(null);
 
-  // Function to replace subject IDs with subject names in responses
-  const replaceSubjectIdsInResponse = (response: string): string => {
-    if (!currentConversation?.subjectName || !currentConversation?.subjectId) return response;
-    const subjectIdPattern = new RegExp(currentConversation.subjectId, 'g');
-    return response.replace(subjectIdPattern, currentConversation.subjectName);
+  // Function to replace subject/topic IDs with names in responses
+  const replaceIdsInResponse = (response: string): string => {
+    if (!currentConversation) return response;
+    let out = response;
+    // Replace subject ID with subject name
+    if (currentConversation.subjectId && currentConversation.subjectName) {
+      const subjectIdPattern = new RegExp(currentConversation.subjectId, 'g');
+      out = out.replace(subjectIdPattern, currentConversation.subjectName);
+    }
+    // Replace topic ID with topic name (if topicId looks like ObjectId)
+    if (currentConversation.topicId && currentConversation.topicName) {
+      const looksLikeId = /^[a-f0-9]{24}$/i.test(currentConversation.topicId);
+      if (looksLikeId) {
+        const topicIdPattern = new RegExp(currentConversation.topicId, 'g');
+        out = out.replace(topicIdPattern, currentConversation.topicName);
+      }
+    }
+    return out;
   };
 
   const scrollToBottom = () => {
@@ -68,7 +82,7 @@ function ChatInterfaceContent() {
   // Load topic conversation from backend
   const loadTopicConversation = async (topicName: string, topicId: string, subjectId: string, subjectName: string) => {
     console.log('[loadTopicConversation] Loading:', { topicName, topicId, subjectId, subjectName });
-    
+
     setIsLoading(true);
     try {
       const response = await fetch(
@@ -80,14 +94,34 @@ function ChatInterfaceContent() {
 
       console.log('[loadTopicConversation] History data:', historyData);
 
-      // Convert history to messages
+      // Infer subject name from history if not provided
+      const inferredSubjectName = subjectName || historyData?.[0]?.subjectWise?.[0]?.subject || '';
+
+      // Helper to replace IDs with names without relying on state
+      const localReplaceIds = (text: string): string => {
+        let out = text || '';
+        if (subjectId && inferredSubjectName) {
+          const idRegex = new RegExp(subjectId, 'g');
+          out = out.replace(idRegex, inferredSubjectName);
+        }
+        if (topicId && topicName) {
+          const looksLikeId = /^[a-f0-9]{24}$/i.test(topicId);
+          if (looksLikeId) {
+            const tRegex = new RegExp(topicId, 'g');
+            out = out.replace(tRegex, topicName);
+          }
+        }
+        return out;
+      };
+
+      // Convert history to messages (sanitized)
       const messages: Array<{ content: string; isUser: boolean; lastMessage: boolean }> = [];
-      
+
       historyData.forEach((day: HistoryDataItem) => {
         day.subjectWise?.forEach((subjectData) => {
           subjectData.queries.forEach((query) => {
-            messages.push({ content: query.query, isUser: true, lastMessage: false });
-            messages.push({ content: query.response, isUser: false, lastMessage: false });
+            messages.push({ content: localReplaceIds(query.query), isUser: true, lastMessage: false });
+            messages.push({ content: localReplaceIds(query.response), isUser: false, lastMessage: false });
           });
         });
       });
@@ -97,7 +131,7 @@ function ChatInterfaceContent() {
         topicId,
         topicName,
         subjectId,
-        subjectName,
+        subjectName: inferredSubjectName,
         messages
       });
 
@@ -180,7 +214,7 @@ function ChatInterfaceContent() {
       );
       const data = await response.json();
 
-      const processedResponse = replaceSubjectIdsInResponse(data.response);
+      const processedResponse = replaceIdsInResponse(data.response);
 
       // Add AI response to UI
       setCurrentConversation(prev => prev ? {
@@ -216,8 +250,8 @@ function ChatInterfaceContent() {
   }, []);
 
   return (
-    <div className="flex h-screen p-2 text-black bg-white">
-      <div className="flex w-full gap-2">
+    <div className="flex h-screen text-black bg-white overflow-hidden">
+      <div className="flex w-full gap-2 overflow-hidden">
         {/* Sidebar */}
         <SidebarContent
           onNewSession={handleNewSession}
@@ -230,14 +264,17 @@ function ChatInterfaceContent() {
           subjectName={currentConversation?.subjectName || ""}
           topicName={currentConversation?.topicName || ""}
           refreshTrigger={refreshTopics}
+          onProvideOpenSidebar={(opener) => setOpenSidebar(() => opener)}
+          hideTrigger
         />
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col bg-white rounded-lg border border-[#309CEC]">
+        <div className="flex-1 flex flex-col bg-white rounded-lg border border-[#309CEC] overflow-hidden">
           <ChatHeader
             subjectName={currentConversation?.subjectName}
             topicName={currentConversation?.topicName}
             onRaiseIssue={() => setShowRaiseIssueModal(true)}
+            onOpenSidebar={() => openSidebar?.()}
           />
           <AutoScrollChatArea messages={currentConversation?.messages || []} isTyping={isTyping} />
           <ChatInput onSendMessage={handleSendMessage} />

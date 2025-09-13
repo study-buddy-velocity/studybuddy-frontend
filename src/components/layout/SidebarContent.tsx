@@ -43,6 +43,10 @@ interface SidebarContentProps {
   subjectName?: string
   topicName?: string
   refreshTrigger?: number
+  // New: allow ChatHeader to programmatically open the sidebar sheet
+  onProvideOpenSidebar?: (opener: () => void) => void
+  // New: hide internal hamburger trigger; ChatHeader will provide it
+  hideTrigger?: boolean
 }
 
 interface UserStreakProps {
@@ -59,9 +63,20 @@ export function SidebarContent({
   isLoading,
   subjectName,
   topicName,
-  refreshTrigger
+  refreshTrigger,
+  onProvideOpenSidebar,
+  hideTrigger
 }: SidebarContentProps) {
   const [isOpen, setIsOpen] = useState(false);
+
+  // Expose an opener to parent (ChatHeader) so hamburger there can open this sidebar
+  // Run once on mount to avoid re-registering on each render
+  useEffect(() => {
+    if (typeof onProvideOpenSidebar === 'function') {
+      onProvideOpenSidebar(() => setIsOpen(true));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [, setUserStreak] = useState<UserStreakProps | null>(null);
   const [, setIsStreakLoading] = useState(true);
   const [subjectMap, setSubjectMap] = useState<{[key: string]: Subject}>({});
@@ -238,11 +253,12 @@ export function SidebarContent({
         </div> */}
       </div>
 
+      {/* Back to Dashboard button as requested */}
       <Button
         onClick={handleNewSession}
         className="w-full bg-[#309CEC] text-white text-[18px] font-bold py-2 rounded-[76px] hover:bg-[#309CEC]/80 transition-colors"
       >
-        + Start a New Session
+        ← Back to Dashboard
       </Button>
 
       <div className="space-y-2">
@@ -302,17 +318,19 @@ export function SidebarContent({
 
   return (
     <>
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar - hide local trigger so ChatHeader can control it */}
       <div className="md:hidden">
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              className="fixed top-20 left-4 z-40 w-12 h-12 p-0 hover:bg-[#4024B9]/10"
-            >
-              <Menu className="h-7 w-7" />
-            </Button>
-          </SheetTrigger>
+          {!hideTrigger && (
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                className="fixed top-20 left-4 z-40 w-12 h-12 p-0 hover:bg-[#4024B9]/10"
+              >
+                <Menu className="h-7 w-7" />
+              </Button>
+            </SheetTrigger>
+          )}
           <SheetContent side="left" className="w-80 bg-white border-r border-[#309CEC] p-4">
             <SheetHeader className="mb-4">
               <SheetTitle className="text-white"></SheetTitle>

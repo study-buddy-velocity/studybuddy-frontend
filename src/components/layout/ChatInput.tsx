@@ -19,14 +19,17 @@ export function ChatInput({ onSendMessage }: ChatInputProps) {
     setIsSubmitting(true)
     
     try {
-      await onSendMessage?.(message.trim())
+      const maybePromise = onSendMessage?.(message.trim())
+      if (maybePromise && typeof (maybePromise as any).then === 'function') {
+        await (maybePromise as any)
+      }
       setMessage('')
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSubmit(e)
@@ -34,23 +37,23 @@ export function ChatInput({ onSendMessage }: ChatInputProps) {
   }
 
   return (
-<footer className="py-6 px-4">
-  <form onSubmit={handleSubmit} className="max-w-4xl mx-auto relative">
-    <Input 
+<footer className="py-3 px-3 bg-white">
+  <form onSubmit={handleSubmit} className="max-w-4xl mx-auto relative bg-white rounded-full border border-[#309CEC] p-1">
+    <Input
       value={message}
       onChange={(e) => setMessage(e.target.value)}
-      onKeyPress={handleKeyPress}
-      placeholder="Ask your questions...." 
-      className="w-full bg-white rounded-full border border-[#309CEC] focus:ring-purple-500 py-6 pr-24"
+      onKeyDown={handleKeyDown}
+      placeholder="Ask your questions...."
+      className="w-full bg-transparent rounded-full border-0 focus:ring-0 focus:outline-none py-3 pr-28 pl-4 text-[16px] placeholder:text-gray-600"
       disabled={isSubmitting}
     />
-    <Button 
+    <Button
       type="submit"
       disabled={!message.trim() || isSubmitting}
-      className="absolute right-3 top-1/2 -translate-y-1/2 bg-[#309CEC] hover:bg-[#309CEC] hover:opacity-80 flex items-center gap-2 text-white"
+      className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#A6D4FA] hover:bg-[#95CBF7] flex items-center gap-2 text-white rounded-full px-5 py-2 h-10"
     >
       <Send className="w-4 h-4" />
-      {isSubmitting ? 'Sending...' : 'Send'}
+      {isSubmitting ? 'Send…' : 'Send'}
     </Button>
   </form>
 </footer>

@@ -10,11 +10,10 @@ interface Message {
 
 interface AutoScrollChatAreaProps {
   messages: Message[];
-  isTyping : boolean;
-
+  isTyping: boolean;
 }
 
-const AutoScrollChatArea: React.FC<AutoScrollChatAreaProps> = ({ messages, isTyping  }) => {
+const AutoScrollChatArea: React.FC<AutoScrollChatAreaProps> = ({ messages, isTyping }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -51,28 +50,28 @@ const AutoScrollChatArea: React.FC<AutoScrollChatAreaProps> = ({ messages, isTyp
 
   return (
     <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-    <div className="space-y-4 max-w-4xl mx-auto">
-      {messages.map((message, index) => (
-        <MessageBubble
-          key={index}
-          content={message?.content || "Please ask relevent questions."}
-          isUser={message.isUser}
-          avatarSrc={message.isUser ? "/assets/buddy/default_profile_pic.png" : "/assets/buddy/Joy-profile-icon.svg"}
-          lastMessage={message.lastMessage && index === messages.length - 1}
-          typingSpeed={10}
-        />
-      ))}
-      {isTyping && (
-        <MessageBubble
-          content=""
-          isUser={false}
-          avatarSrc="/assets/buddy/Joy-profile-icon.svg"
-          isTyping={true}
-        />
-      )}
-      <div className="h-4" />
-    </div>
-  </ScrollArea>
+      <div className="space-y-4 max-w-4xl mx-auto pb-28">
+        {messages.map((message, index) => (
+          <MessageBubble
+            key={index}
+            content={message?.content || "Please ask relevent questions."}
+            isUser={message.isUser}
+            avatarSrc={message.isUser ? "/assets/buddy/default_profile_pic.png" : "/assets/buddy/Joy-profile-icon.svg"}
+            lastMessage={message.lastMessage && index === messages.length - 1}
+            typingSpeed={10}
+          />
+        ))}
+        {isTyping && (
+          <MessageBubble
+            content=""
+            isUser={false}
+            avatarSrc="/assets/buddy/Joy-profile-icon.svg"
+            isTyping={true}
+          />
+        )}
+        <div className="h-4" />
+      </div>
+    </ScrollArea>
   );
 };
 

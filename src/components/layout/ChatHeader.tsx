@@ -6,16 +6,18 @@ import { getFirstWord, UserData } from "@/lib/utils"
 import { useAuth } from "@/hooks/useAuthenticationHook"
 import ProfileDropdown from "./profileDropdown";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ChevronLeft } from "lucide-react";
+import { AlertCircle, Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface ChatHeaderProps {
   subjectName?: string;
   topicName?: string;
   onRaiseIssue?: () => void;
+  // New: provide an optional opener callback to open the sidebar
+  onOpenSidebar?: () => void;
 }
 
-export function ChatHeader({ subjectName, topicName, onRaiseIssue }: ChatHeaderProps) {
+export function ChatHeader({ subjectName, topicName, onRaiseIssue, onOpenSidebar }: ChatHeaderProps) {
   const [userData, setUserData] = useState<UserData>({
     dob: "",
     name: "",
@@ -55,13 +57,15 @@ export function ChatHeader({ subjectName, topicName, onRaiseIssue }: ChatHeaderP
   {/* Left Section */}
   <div className="flex items-center gap-2 sm:gap-3">
     {/* Back Button */}
+    {/* Mobile hamburger to open sidebar (replaces back button) */}
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => router.push('/dashboard')}
-      className="h-8 w-8 text-[#309CEC] hover:bg-[#309CEC]/10"
+      onClick={() => onOpenSidebar?.()}
+      className="h-8 w-8 text-[#309CEC] hover:bg-[#309CEC]/10 md:hidden"
+      aria-label="Open menu"
     >
-      <ChevronLeft className="w-5 h-5" />
+      <Menu className="w-5 h-5" />
     </Button>
 
     {/* Avatar + Subject */}
