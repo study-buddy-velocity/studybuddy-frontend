@@ -356,7 +356,7 @@ function AlgebraQuizContent() {
         >
           <div className="flex justify-between items-center mb-12">
             <h1 className="text-xl font-medium" style={{ color: "#309CEC" }}>
-              Topic: {topicName || "Algebra"}
+              Topic: {topicName || "Topic"}
             </h1>
             <Button
               variant="outline"

@@ -51,13 +51,13 @@ export default function ProfilePage() {
       <NavBar />
       <main className="container p-4 mx-auto space-y-4">
         {/* First Row */}
-        <div className="grid gap-4 md:grid-cols-12">
-          {/* ProfileInfo takes 5 columns */}
-          <div className="md:col-span-5">
+        <div className="grid gap-4 lg:grid-cols-12">
+          {/* ProfileInfo takes 5 columns on large screens; full width on tablet */}
+          <div className="lg:col-span-5">
             <ProfileInfo userData={userData} />
           </div>
-          {/* Priorities takes 7 columns */}
-          <div className="md:col-span-7">
+          {/* Priorities takes 7 columns on large screens; full width on tablet */}
+          <div className="lg:col-span-7">
             <Priorities userData={userData} />
           </div>
         </div>

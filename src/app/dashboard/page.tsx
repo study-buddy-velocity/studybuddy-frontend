@@ -104,7 +104,7 @@ const analyzeUserLearningPatterns = (chatHistory: ChatHistoryItem[], subjects: S
 }
 
 // Helper function to generate quiz recommendations based on analysis
-const generateQuizRecommendations = (analysis: Map<string, AnalysisData>): QuizRecommendation[] => {
+const generateQuizRecommendations = (analysis: Map<string, AnalysisData>, allSubjects: Subject[]): QuizRecommendation[] => {
   const recommendations: QuizRecommendation[] = []
   const colors = [
     { bg: "bg-blue-50", button: "bg-blue-500" },
@@ -151,13 +151,34 @@ const generateQuizRecommendations = (analysis: Map<string, AnalysisData>): QuizR
     })
   })
 
-  // If no chat history, provide some default recommendations
+  // If no chat history, provide default recommendations with real subject/topic
   if (recommendations.length === 0) {
-    return [
-      { subject: "Mathematics", score: "Get Started", color: "bg-blue-50", buttonColor: "bg-blue-500" },
-      { subject: "Physics", score: "Explore", color: "bg-green-50", buttonColor: "bg-green-500" },
-      { subject: "Chemistry", score: "Try Now", color: "bg-orange-50", buttonColor: "bg-orange-500" },
-    ]
+    const subjectsWithTopics = (allSubjects || []).filter(s => Array.isArray(s.topics) && s.topics.length > 0)
+    const selected = subjectsWithTopics.slice(0, 6)
+    const fallback = selected.map((s, index) => {
+      const colorIndex = index % colors.length
+      const topic = s.topics[Math.floor(Math.random() * s.topics.length)]
+      return {
+        subject: s.name,
+        score: "Get Started",
+        color: colors[colorIndex].bg,
+        buttonColor: colors[colorIndex].button,
+        subjectId: s._id,
+        topicId: topic?._id,
+        topicName: topic?.name
+      } as QuizRecommendation
+    }).filter(r => !!r.topicId)
+
+    // If still none (no topics available), fall back to basic cards without navigation IDs
+    if (fallback.length === 0) {
+      return [
+        { subject: "Mathematics", score: "Get Started", color: "bg-blue-50", buttonColor: "bg-blue-500" },
+        { subject: "Physics", score: "Explore", color: "bg-green-50", buttonColor: "bg-green-500" },
+        { subject: "Chemistry", score: "Try Now", color: "bg-orange-50", buttonColor: "bg-orange-500" },
+      ]
+    }
+
+    return fallback
   }
 
   return recommendations
@@ -227,7 +248,7 @@ console.log(loading);
       const subjectAnalysis = analyzeUserLearningPatterns(chatHistory, allSubjects)
 
       // Generate recommendations based on analysis
-      const intelligentRecommendations = generateQuizRecommendations(subjectAnalysis)
+      const intelligentRecommendations = generateQuizRecommendations(subjectAnalysis, allSubjects)
 
       setRecommendations(intelligentRecommendations)
     } catch (error) {

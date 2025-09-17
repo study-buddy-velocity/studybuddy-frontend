@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { userApi } from '@/lib/api/user';
+import { LeaderboardAPI } from '@/lib/api/leaderboard';
 
 interface UserStreakProps {
   streak: number | 0;
@@ -125,19 +126,27 @@ export function ProfileInfo({ userData }: ProfileInfoProps) {
 
   const fetchStreakData = async () => {
     try {
+      // Prefer the same source as Leaderboard to ensure parity
+      const rank = await LeaderboardAPI.getUserRank({ period: 'all' }).catch(() => null)
+      if (rank && typeof rank.streak === 'number') {
+        setUserStreak({ streak: rank.streak })
+        return
+      }
+
+      // Fallback to chat-streak endpoint
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/chat-streak`, {
         method: 'GET',
         headers: getAuthHeaders()
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch user data');
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setUserStreak(data)
+      } else {
+        setUserStreak({ streak: 0 })
       }
-
-      const data = await response.json();
-      setUserStreak(data);
     } catch (error) {
-      console.error('Error fetching user streak data:', error);
+      console.error('Error fetching user streak data:', error)
+      setUserStreak({ streak: 0 })
     }
   };
 
@@ -147,9 +156,9 @@ export function ProfileInfo({ userData }: ProfileInfoProps) {
 
   return (
     <div className="p-6 rounded-lg border-2 border-blue-200 bg-white h-full">
-      <div className="flex flex-col sm:flex-row gap-6">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative w-[220px] h-[220px]">
+      <div className="flex flex-col md:flex-row gap-6">
+        <div className="flex flex-col items-center gap-4 md:w-[240px] md:flex-shrink-0">
+          <div className="relative w-[200px] h-[200px] md:w-[220px] md:h-[220px]">
             <Image
               src={previewUrl}
               alt="Profile avatar"
@@ -160,21 +169,18 @@ export function ProfileInfo({ userData }: ProfileInfoProps) {
         </div>
         <div className="flex-1 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm text-gray-600">Basic Info</h3>
+            <h3 className="text-sm text-gray-600 md:text-base">Basic Info</h3>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
-                <Image
-                  src="/assets/buddy/streak_profile.svg"
-                  alt="Fire icon"
-                  width={16}
-                  height={16}
-                  className="opacity-70"
-                />
-                <span className="text-xs text-gray-600">{userStreak?.streak}</span>
+                <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-full text-xs font-medium">
+                  <span role="img" aria-label="flame">🔥</span>
+                  {userStreak?.streak ?? 0}
+                  <span className="text-[10px] text-blue-600 ml-1">streak</span>
+                </span>
               </div>
             </div>
           </div>
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input
               type="text"
               name="name"
