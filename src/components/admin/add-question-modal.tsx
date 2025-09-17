@@ -54,6 +54,7 @@ interface AddQuestionModalProps {
     topicId: string
     options: Option[]
     explanation?: string
+    difficulty_level?: 'easy' | 'medium' | 'hard'
   }) => void
   subjects: Subject[]
   topics: Topic[]
@@ -77,6 +78,7 @@ export default function AddQuestionModal({
   const [subjectId, setSubjectId] = useState("")
   const [topicId, setTopicId] = useState("")
   const [explanation, setExplanation] = useState("")
+  const [difficultyLevel, setDifficultyLevel] = useState<'easy' | 'medium' | 'hard'>('medium')
   const [options, setOptions] = useState<Option[]>([
     { id: "1", text: "", isCorrect: false },
     { id: "2", text: "", isCorrect: false },
@@ -146,6 +148,7 @@ export default function AddQuestionModal({
         topicId,
         options: options.filter((option) => option.text.trim()),
         explanation: explanation.trim(),
+        difficulty_level: difficultyLevel,
       })
 
       // Only reset form if not editing
@@ -243,6 +246,22 @@ export default function AddQuestionModal({
                 ))}
               </select>
             </div>
+
+            {/* Difficulty Level */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Difficulty Level</label>
+              <select
+                value={difficultyLevel}
+                onChange={(e) => setDifficultyLevel(e.target.value as 'easy' | 'medium' | 'hard')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
+                required
+              >
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+            </div>
+
 
             {/* Question */}
             <div>

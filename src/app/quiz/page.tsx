@@ -211,8 +211,9 @@ function AlgebraQuizContent() {
       let apiQuestions: Question[] = []
 
       // Attempt with whatever filters are currently available
-      const filter: { subjectId?: string; topicId?: string; classId?: string; noOfQuestions: number } = {
+      const filter: { subjectId?: string; topicId?: string; classId?: string; noOfQuestions: number; difficulty_level?: 'easy' | 'medium' | 'hard' } = {
         noOfQuestions: quizSettings.numQuestions,
+        difficulty_level: (quizSettings.difficulty as 'easy' | 'medium' | 'hard')
       }
       if (subjectId) filter.subjectId = subjectId
       if (topicId) filter.topicId = topicId

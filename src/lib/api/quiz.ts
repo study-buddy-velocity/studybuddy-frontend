@@ -28,6 +28,7 @@ export interface Quiz {
   topicId: string;
   type?: string;
   difficulty?: number;
+  difficulty_level?: 'easy' | 'medium' | 'hard';
   explanation?: string;
   classId?: string;
   createdAt: string;
@@ -41,6 +42,7 @@ export interface CreateQuizData {
   topicId: string;
   type?: string;
   difficulty?: number;
+  difficulty_level?: 'easy' | 'medium' | 'hard';
   explanation?: string;
   classId?: string;
 }
@@ -50,6 +52,7 @@ export interface UpdateQuizData {
   options?: QuizOption[];
   type?: string;
   difficulty?: number;
+  difficulty_level?: 'easy' | 'medium' | 'hard';
   explanation?: string;
   classId?: string;
 }
@@ -58,6 +61,7 @@ export interface QuizFilter {
   subjectId?: string;
   topicId?: string;
   classId?: string;
+  difficulty_level?: 'easy' | 'medium' | 'hard';
   noOfQuestions?: number;
 }
 
@@ -122,6 +126,7 @@ export const quizApi = {
     if (filter?.topicId) params.append('topicId', filter.topicId);
     if (filter?.classId) params.append('classId', filter.classId);
     if (filter?.noOfQuestions) params.append('noOfQuestions', filter.noOfQuestions.toString());
+    if (filter?.difficulty_level) params.append('difficulty_level', filter.difficulty_level);
 
     const queryString = params.toString() ? `?${params.toString()}` : '';
 

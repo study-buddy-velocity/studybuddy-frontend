@@ -66,6 +66,10 @@ export default function QuizQuestionsPage() {
   const [questions, setQuestions] = useState<LocalQuestion[]>([])
   const [classes, setClasses] = useState<LocalClass[]>([])
 
+  // Local pagination for admin table
+  const [page, setPage] = useState(1)
+  const pageSize = 10
+
   // Load subjects, classes and questions on component mount
   useEffect(() => {
     loadSubjects()
@@ -162,6 +166,11 @@ export default function QuizQuestionsPage() {
     return true
   })
 
+  // Client-side pagination slice
+  const totalPages = Math.max(1, Math.ceil(filteredQuestions.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const paginatedQuestions = filteredQuestions.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
   const handleAddQuestion = async (data: {
     question: string
     classId: string
@@ -182,7 +191,8 @@ export default function QuizQuestionsPage() {
           isCorrect: option.isCorrect
         })),
         explanation: data.explanation,
-        classId: data.classId
+        classId: data.classId,
+        difficulty_level: (data as any).difficulty_level || 'medium'
       }
 
       if (editingQuestion) {
@@ -204,7 +214,7 @@ export default function QuizQuestionsPage() {
     }
   }
 
-  const handleUploadQuestions = async (data: { file: File; classId: string; subjectId: string; topicId: string }) => {
+  const handleUploadQuestions = async (data: { file: File; classId: string; subjectId: string; topicId: string; difficulty_level?: 'easy' | 'medium' | 'hard' }) => {
     setLoading(true);
     try {
       // Parse CSV file
@@ -245,7 +255,7 @@ export default function QuizQuestionsPage() {
         header[0] = header[0].slice(1);
       }
       header = header.map(h => h.toLowerCase());
-      const expectedHeaders = ['question', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_answer', 'explanation'];
+      const expectedHeaders = ['question', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_answer', 'explanation', 'difficulty_level'];
 
       console.log('Parsed header:', header);
       console.log('Expected headers:', expectedHeaders);
@@ -303,6 +313,8 @@ export default function QuizQuestionsPage() {
         const optionD = row[header.indexOf('option_d')];
         const correctAnswer = row[header.indexOf('correct_answer')].toUpperCase().trim();
         const explanation = row[header.indexOf('explanation')] || '';
+        const difficultyLevelCell = (row[header.indexOf('difficulty_level')] || '').toLowerCase().trim();
+        const normalizedDifficulty = ['easy','medium','hard'].includes(difficultyLevelCell) ? (difficultyLevelCell as 'easy'|'medium'|'hard') : 'medium';
 
         console.log(`Row ${i} data:`, {
           question: questionText,
@@ -336,6 +348,7 @@ export default function QuizQuestionsPage() {
           classId: data.classId,
           explanation: explanation,
           difficulty: 1,
+          difficulty_level: normalizedDifficulty,
           type: 'multiple-choice'
         };
 
@@ -507,7 +520,7 @@ export default function QuizQuestionsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                  {filteredQuestions.map((question, index) => (
+                  {paginatedQuestions.map((question, index) => (
                     <tr
                       key={question.id}
                       className={`${index % 2 === 0 ? "bg-row-light" : "bg-white"} hover:bg-blue-50 cursor-pointer transition-colors`}
@@ -540,12 +553,62 @@ export default function QuizQuestionsPage() {
                         {selectedSubject || selectedTopic
                           ? "No questions found for selected filters"
                           : "No questions available"}
+
+                {/* Pagination controls */}
+                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+                  <div className="text-sm text-gray-600">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="px-3 py-1 rounded border border-gray-300 text-sm disabled:opacity-50"
+                      disabled={currentPage <= 1}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    >
+                      Previous
+                    </button>
+                    <button
+                      className="px-3 py-1 rounded border border-gray-300 text-sm disabled:opacity-50"
+                      disabled={currentPage >= totalPages}
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
               )}
+
+              {/* Pagination controls (always visible below the table when multiple pages) */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+                  <div className="text-sm text-gray-600">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="px-3 py-1 rounded border border-gray-300 text-sm disabled:opacity-50"
+                      disabled={currentPage <= 1}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    >
+                      Previous
+                    </button>
+                    <button
+                      className="px-3 py-1 rounded border border-gray-300 text-sm disabled:opacity-50"
+                      disabled={currentPage >= totalPages}
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         </div>

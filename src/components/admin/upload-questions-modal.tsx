@@ -26,7 +26,7 @@ interface Class {
 interface UploadQuestionsModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: { file: File; classId: string; subjectId: string; topicId: string }) => void
+  onSubmit: (data: { file: File; classId: string; subjectId: string; topicId: string; difficulty_level?: 'easy' | 'medium' | 'hard' }) => void
   subjects: Subject[]
   topics: Topic[]
   classes: Class[]
@@ -46,6 +46,8 @@ export default function UploadQuestionsModal({
   const [classId, setClassId] = useState("")
   const [subjectId, setSubjectId] = useState("")
   const [topicId, setTopicId] = useState("")
+
+
   const [dragActive, setDragActive] = useState(false)
 
   const filteredTopics = topics.filter((topic) => topic.subjectId === subjectId && (!classId || !topic.classId || topic.classId === classId))
@@ -92,10 +94,10 @@ export default function UploadQuestionsModal({
   }
 
   const downloadTemplate = () => {
-    const csvContent = `question,option_a,option_b,option_c,option_d,correct_answer,explanation
-"What is 2+2?","3","4","5","6","B","Basic addition: 2+2=4"
-"Which of the following is the smallest number?","3,402","3,024","3,240","3,204","B","Compare the thousands, hundreds, tens, and units places"
-"What is the capital of France?","London","Berlin","Paris","Madrid","C","Paris is the capital city of France"`
+    const csvContent = `question,option_a,option_b,option_c,option_d,correct_answer,explanation,difficulty_level
+"What is 2+2?","3","4","5","6","B","Basic addition: 2+2=4","easy"
+"Which of the following is the smallest number?","3,402","3,024","3,240","3,204","B","Compare the thousands, hundreds, tens, and units places","medium"
+"What is the capital of France?","London","Berlin","Paris","Madrid","C","Paris is the capital city of France","hard"`
 
     const blob = new Blob([csvContent], { type: "text/csv" })
     const url = window.URL.createObjectURL(blob)
@@ -222,6 +224,7 @@ export default function UploadQuestionsModal({
                   )}
                 </label>
               </div>
+
             </div>
 
             {/* Template Download */}
